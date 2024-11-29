@@ -33,7 +33,7 @@
 <script>
 // Importing emailjs-com for email sending
 import emailjs from 'emailjs-com';
-import { getFirestore, collection, query, where, getDocs, setDoc, getDoc } from "firebase/firestore";
+import { getFirestore, collection, query, where, getDocs, setDoc } from "firebase/firestore";
 
 export default {
   name: "UserRegisterForm",
@@ -43,15 +43,15 @@ export default {
       lastname: "",
       firstname: "",
       department: "",
-      voucherCode: "",
+      voucherCode: "", // This will store the generated voucher code
     };
   },
   methods: {
-    async submitForm() { // Mark this as async
+    async submitForm() {
       try {
         const db = getFirestore();
 
-        // Query the users collection to find the document with the matching email
+        // Query Firestore to find the user with the matching email
         const userQuery = query(collection(db, "users"), where("Email", "==", this.email));
         const querySnapshot = await getDocs(userQuery);
 
@@ -61,30 +61,36 @@ export default {
         }
 
         let userDocRef;
-        let firstname;
+        let retrievedFirstname;
+
+        // Retrieve document reference and firstname
         querySnapshot.forEach((document) => {
-          userDocRef = document.ref; // Get the document reference of the matched user
-          firstname = document.data().Firstname; // Fetch the Firstname from Firestore
+          userDocRef = document.ref; // Document reference
+          retrievedFirstname = document.data().Firstname; // Fetch the existing Firstname
         });
 
-        // You can now use firstname to send it in the email template
-        this.sendVoucherEmail(this.email, firstname, this.voucherCode);
-
-        // Generate a random voucher code (you can customize the logic)
+        // Generate a random voucher code
         this.voucherCode = this.generateVoucherCode();
 
-        // Save the user details and voucher code in Firestore
-        await setDoc(userDocRef, {
-          Lastname: this.lastname,
-          Firstname: this.firstname,
-          Department: this.department,
-          Voucher: this.voucherCode, // Save the voucher code in Firestore
-        }, { merge: true });
+        // Send the voucher email using EmailJS
+        this.sendVoucherEmail(this.email, retrievedFirstname, this.voucherCode);
+
+        // Save user details along with the voucher code to Firestore
+        await setDoc(
+          userDocRef,
+          {
+            Lastname: this.lastname,
+            Firstname: this.firstname,
+            Department: this.department,
+            Voucher: this.voucherCode, // Save the voucher code
+          },
+          { merge: true } // Merge with existing fields
+        );
 
         alert(`Registration successful! Your voucher code has been sent to ${this.email}`);
       } catch (error) {
         console.error("Error registering user:", error);
-        alert("An error occurred during registration.");
+        alert("An error occurred during registration. Please try again.");
       }
     },
 
@@ -96,27 +102,29 @@ export default {
     // Function to send the voucher email using EmailJS
     sendVoucherEmail(email, firstname, voucherCode) {
       const templateParams = {
-        email: email,
-        firstname: firstname,
-        voucherCode: voucherCode,
+        to_name: firstname, // Maps to {{to_name}} in the EmailJS template
+        from_name: "System Admin", // Static name; Maps to {{from_name}}
+        message: `Your voucher code is: ${voucherCode}`, // Maps to {{message}} in the EmailJS template
       };
 
-      emailjs.send(
-        'service_omc30br', // Replace with your service ID from EmailJS
-        'template_5dmj3ru', // Replace with your template ID from EmailJS
-        templateParams,
-        'ASoddsQfmCUWEnZsY' // Replace with your user ID from EmailJS
-      )
-      .then((response) => {
-        console.log('Email sent successfully:', response);
-      })
-      .catch((error) => {
-        console.error('Error sending email:', error);
-      });
+      emailjs
+        .send(
+          'service_owytwze', // Replace with your EmailJS service ID
+          'template_ddqgd23', // Replace with your EmailJS template ID
+          templateParams,
+          'ASoddsQfmCUWEnZsY' // Replace with your EmailJS public key
+        )
+        .then((response) => {
+          console.log("Email sent successfully:", response);
+        })
+        .catch((error) => {
+          console.error("Error sending email:", error);
+        });
     },
-  }
+  },
 };
 </script>
+
 
 
 <style scoped>
