@@ -1,81 +1,164 @@
 <template>
   <div class="constraint-layout">
-    <div class="background-overlay"></div> <!-- Add overlay for darkening -->
-    <div class="overlay-container"> <!-- New overlay container -->
-      <h2>Vote for Your Candidate</h2> <!-- Header -->
-      <div class="candidates">
-        <div
-          v-for="(candidate, index) in candidates"
-          :key="index"
-          class="candidate-card"
-          :class="{ selected: selectedCandidate === index }"
-          @click="selectCandidate(index)"
-        >
-          <img :src="candidate.picture" :alt="candidate.name" />
-          <p>{{ candidate.name }}</p>
-          <div v-if="selectedCandidate === index" class="checkmark">✔</div>
+    <div class="background-overlay"></div>
+    <div class="overlay-container">
+      <h2>Vote for Your Candidate</h2>
+
+      <!-- Display containers for each position -->
+      <div
+        class="position-container"
+        v-for="(nominees, position) in groupedNominees"
+        :key="position"
+      >
+        <h3 class="position-title">{{ position }}</h3>
+        <div class="candidates">
+          <div
+            v-for="candidate in nominees"
+            :key="`${position}-${candidate.id}`"
+            class="candidate-card"
+            :class="{ selected: selectedCandidate[position] === candidate.id }"
+            @click="selectCandidate(candidate.id, position)"
+          >
+            <div class="photo-container">
+              <img
+                :src="candidate.photo || 'https://via.placeholder.com/150'"
+                :alt="candidate.name"
+                class="nominee-photo"
+              />
+            </div>
+            <p class="candidate-name">{{ candidate.name }}</p>
+            <p class="vote-text">Vote</p>
+            <!-- Green check mark -->
+            <div
+              v-if="selectedCandidate[position] === candidate.id"
+              class="checkmark"
+            >
+              ✔
+            </div>
+          </div>
         </div>
       </div>
-      <button v-if="selectedCandidate !== null" @click="confirmVote">
-        Press Again to Vote
+
+      <!-- Submit Votes Button -->
+      <button
+        v-if="Object.keys(selectedCandidate).length > 0"
+        class="submit-votes"
+        @click="confirmVote"
+      >
+        Submit Votes
       </button>
     </div>
   </div>
 </template>
 
 <script>
-import { getFirestore, doc, updateDoc, increment } from "firebase/firestore";
+import {
+  getFirestore,
+  collection,
+  onSnapshot,
+  doc,
+  updateDoc,
+  increment,
+} from "firebase/firestore";
 
 export default {
   name: "VoterComponent",
   data() {
     return {
-      candidates: [
-        { name: "Candidate 1", picture: "path/to/picture1.jpg" },
-        { name: "Candidate 2", picture: "path/to/picture2.jpg" },
-        { name: "Candidate 3", picture: "path/to/picture3.jpg" },
-      ],
-      selectedCandidate: null,
+      candidates: [], // List of candidates from Firebase
+      selectedCandidate: {}, // Tracks selected candidates per position
     };
   },
+  computed: {
+    groupedNominees() {
+      // Group candidates by their position
+      return this.candidates.reduce((groups, candidate) => {
+        const position = candidate.position || "Others";
+        if (!groups[position]) groups[position] = [];
+        groups[position].push(candidate);
+        return groups;
+      }, {});
+    },
+  },
   methods: {
-    selectCandidate(index) {
-      this.selectedCandidate = this.selectedCandidate === index ? null : index;
+    selectCandidate(candidateId, position) {
+      // Toggle the selection for the given position
+      if (this.selectedCandidate[position] === candidateId) {
+        delete this.selectedCandidate[position]; // Unset the candidate if already selected
+      } else {
+        this.selectedCandidate = {
+          ...this.selectedCandidate, // Preserve existing selections
+          [position]: candidateId, // Update the selection for the current position
+        };
+      }
+      console.log("Updated selectedCandidate:", this.selectedCandidate);
     },
     async confirmVote() {
-      if (this.selectedCandidate === null) return;
+      if (Object.keys(this.selectedCandidate).length === 0) {
+        alert("Please select at least one candidate to vote.");
+        return;
+      }
 
       try {
         const db = getFirestore();
-        const candidate = this.candidates[this.selectedCandidate];
-        const candidateDocRef = doc(db, "candidates", candidate.name);
+        const votes = []; // To track recorded votes for alert feedback
 
-        // Increment the vote count for the selected candidate
-        await updateDoc(candidateDocRef, {
-          votes: increment(1),
-        });
+        // Process each selected candidate
+        for (const [position, candidateId] of Object.entries(
+          this.selectedCandidate
+        )) {
+          const candidate = this.candidates.find((c) => c.id === candidateId);
+          if (candidate) {
+            const candidateDocRef = doc(db, "nominees", candidate.id);
 
-        alert(`Your vote for ${candidate.name} has been recorded!`);
-        this.selectedCandidate = null;
+            // Increment the vote count in Firestore
+            await updateDoc(candidateDocRef, {
+              score: increment(1),
+            });
+
+            // Add the vote to the feedback array
+            votes.push(`${position}: ${candidate.name}`);
+          }
+        }
+
+        // Provide feedback to the user
+        alert(`Your votes have been recorded:\n${votes.join("\n")}`);
+        this.selectedCandidate = {}; // Reset selection after voting
       } catch (error) {
-        console.error("Error saving vote:", error);
-        alert("An error occurred while saving your vote.");
+        console.error("Error saving votes:", error);
+        alert("An error occurred while saving your votes. Please try again.");
       }
     },
+    fetchCandidates() {
+      const db = getFirestore();
+      const nomineesRef = collection(db, "nominees");
+
+      // Listen for real-time updates from Firestore
+      onSnapshot(nomineesRef, (snapshot) => {
+        this.candidates = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+      });
+    },
+  },
+  mounted() {
+    this.fetchCandidates(); // Fetch candidates when the component is mounted
   },
 };
 </script>
 
 <style scoped>
 @font-face {
-  font-family: 'agrandir';
-  src: url('@/assets/agrandir.otf');
+  font-family: "agrandir";
+  src: url("@/assets/agrandir.otf");
 }
 
-html, body {
+html,
+body {
   height: 100%;
-  margin: 0; /* Remove default margin */
-  padding: 0; /* Remove default padding */
+  margin: 0;
+  padding: 0;
 }
 
 .constraint-layout {
@@ -89,49 +172,61 @@ html, body {
   align-items: center;
   justify-content: center;
   text-align: center;
-
-  background-image: url('@/assets/facade1.png');
+  background-image: url("@/assets/facade1.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
 }
 
-
 .overlay-container {
-  background-color: rgba(0, 0, 0, 0.7); /* Black background with opacity */
-  color: #333; /* Set text color to white for visibility */
-  padding: 2rem; /* Add padding for spacing */
-  border-radius: 8px; /* Optional: Add rounded corners */
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5); /* Optional: Add shadow for depth */
-  z-index: 1; /* Ensure it is above the background overlay */
+  background-color: rgba(0, 0, 0, 0.7);
+  color: #ffffff;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+  z-index: 1;
   font-family: agrandir;
 }
 
-/* Updated positioning for the title and candidates */
 h2 {
   color: white;
   margin-bottom: 2rem;
-  font-size: 2rem; /* Casual font size */
+  font-size: 2rem;
   font-family: agrandir;
 }
 
-.candidates {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 1rem;
+.position-container {
+  margin-bottom: 2rem;
   width: 100%;
-  max-width: 600px;
+  text-align: center;
+}
+
+.position-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #ffffff;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+}
+
+.candidates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
 }
 
 .candidate-card {
   border: 1px solid #ccc;
   border-radius: 4px;
-  padding: 1rem;
   text-align: center;
-  position: relative;
   cursor: pointer;
   background-color: #f9f9f9;
   transition: transform 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem;
 }
 
 .candidate-card:hover {
@@ -143,6 +238,37 @@ h2 {
   background-color: #e6ffe6;
 }
 
+.photo-container {
+  width: 100%;
+  height: 150px;
+  background-color: #f4f4f4;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-bottom: 1px solid #ddd;
+}
+
+.nominee-photo {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.candidate-name {
+  font-size: 1rem;
+  font-weight: bold;
+  margin-top: 0.5rem;
+  color: #000;
+}
+
+.vote-text {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #007bff;
+  margin-top: 0.5rem;
+}
+
 .checkmark {
   position: absolute;
   top: 10px;
@@ -151,17 +277,17 @@ h2 {
   font-size: 1.5rem;
 }
 
-button {
+button.submit-votes {
   margin-top: 1rem;
   padding: 0.7rem 1.5rem;
   background-color: #007bff;
-  color: #000000;
+  color: #ffffff;
   border: none;
   border-radius: 4px;
   cursor: pointer;
 }
 
-button:hover {
+button.submit-votes:hover {
   background-color: #0056b3;
 }
 </style>
