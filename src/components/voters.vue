@@ -7,13 +7,13 @@
       <!-- Display containers for each position -->
       <div
         class="position-container"
-        v-for="(nominees, position) in groupedNominees"
+        v-for="position in orderedPositions"
         :key="position"
       >
         <h3 class="position-title">{{ position }}</h3>
         <div class="candidates">
           <div
-            v-for="candidate in nominees"
+            v-for="candidate in groupedNominees[position] || []"
             :key="`${position}-${candidate.id}`"
             class="candidate-card"
             :class="{ selected: selectedCandidate[position] === candidate.id }"
@@ -28,7 +28,6 @@
             </div>
             <p class="candidate-name">{{ candidate.name }}</p>
             <p class="vote-text">Vote</p>
-            <!-- Green check mark -->
             <div
               v-if="selectedCandidate[position] === candidate.id"
               class="checkmark"
@@ -51,6 +50,8 @@
   </div>
 </template>
 
+
+
 <script>
 import {
   getFirestore,
@@ -67,6 +68,25 @@ export default {
     return {
       candidates: [], // List of candidates from Firebase
       selectedCandidate: {}, // Tracks selected candidates per position
+      orderedPositions: [
+        "PRESIDENT",
+        "VICE-PRESIDENT",
+        "SECRETARY",
+        "TREASURER",
+        "AUDITOR",
+        "BUSINESS MANAGER",
+        "PUBLIC INFORMATION OFFICER",
+        "PUBLIC RELATIONS OFFICER",
+        "CREATIVE DIRECTOR",
+        "EXECUTIVE ASSISTANT TO THE PRESIDENT",
+        "ASSISTANT SECRETARY",
+        "ASSISTANT TREASURER",
+        "ASSISTANT AUDITOR",
+        "ASSISTANT BUSINESS MANAGER",
+        "ASSISTANT CREATIVE DIRECTOR",
+        "CHIEF OF STAFF",
+        "EXECUTIVE STAFF",
+      ],
     };
   },
   computed: {
@@ -148,6 +168,7 @@ export default {
 };
 </script>
 
+
 <style scoped>
 @font-face {
   font-family: "agrandir";
@@ -159,23 +180,20 @@ body {
   height: 100%;
   margin: 0;
   padding: 0;
+  overflow-y: auto; /* Enable scrolling */
 }
 
 .constraint-layout {
-  position: fixed;
-  top: 0;
-  left: 0;
-  height: 100vh;
   width: 100vw;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   text-align: center;
   background-image: url("@/assets/facade1.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
+  padding: 2rem 0;
 }
 
 .overlay-container {
@@ -186,6 +204,8 @@ body {
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
   z-index: 1;
   font-family: agrandir;
+  width: 90%;
+  max-width: 1200px;
 }
 
 h2 {
@@ -227,6 +247,7 @@ h2 {
   flex-direction: column;
   align-items: center;
   padding: 1rem;
+  position: relative; /* Make this the relative container for the checkmark */
 }
 
 .candidate-card:hover {
@@ -275,6 +296,7 @@ h2 {
   right: 10px;
   color: green;
   font-size: 1.5rem;
+  font-weight: bold;
 }
 
 button.submit-votes {
@@ -290,4 +312,5 @@ button.submit-votes {
 button.submit-votes:hover {
   background-color: #0056b3;
 }
+
 </style>
