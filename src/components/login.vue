@@ -2,85 +2,76 @@
   <div class="constraint-layout">
     <div class="overlay">
       <h2>Login</h2>
-      <form @submit.prevent="login">
+      <form @submit.prevent="loginWithVoucher">
+        <!-- Voucher Field -->
         <div class="form-group">
-          <label for="email">Email:</label>
-          <input type="email" v-model="email" required />
+          <label for="voucher">Voucher Code:</label>
+          <input
+            type="text"
+            id="voucher"
+            v-model="voucherCode"
+            required
+            placeholder="Enter your voucher code"
+          />
         </div>
-        <div class="form-group">
-          <label for="voucherCode">Voucher Code:</label>
-          <input type="text" v-model="voucherCode" required />
-        </div>
+        <!-- Login Button -->
         <button type="submit">Login</button>
       </form>
-
-      <!-- Register Button -->
-      <p>Don't have an account? <router-link to="/register">
-        <button class="register-button">Register</button>
-      </router-link></p>
     </div>
   </div>
 </template>
 
 <script>
-import { db } from "@/firebase";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { getFirestore, collection, query, where, getDocs } from "firebase/firestore";
 
 export default {
-  name: "LoginPage",
+  name: "VoucherLoginForm",
   data() {
     return {
-      email: "", // User input for email
-      voucherCode: "", // User input for voucher code
+      voucherCode: "", // Stores the voucher code entered by the user
     };
   },
   methods: {
-    async login() {
+    async loginWithVoucher() {
       try {
-        console.log("Email Entered:", this.email);
-        console.log("Voucher Code Entered:", this.voucherCode);
+        const db = getFirestore();
 
-        // Query Firestore to find the user by email
-        const userQuery = query(collection(db, "users"), where("Email", "==", this.email));
+        // Query Firestore to find the user with the matching voucher code
+        const userQuery = query(
+          collection(db, "users"),
+          where("Voucher", "==", this.voucherCode)
+        );
         const querySnapshot = await getDocs(userQuery);
 
-        console.log("Query Snapshot Size:", querySnapshot.size);
-
         if (querySnapshot.empty) {
-          alert("Email not found.");
-          console.log("No matching user document for the provided email.");
+          alert("Invalid voucher code. Please try again.");
           return;
         }
 
-        let retrievedVoucher = null;
-        querySnapshot.forEach((doc) => {
-          console.log("Document ID:", doc.id);
-          console.log("Document Data:", doc.data());
-          retrievedVoucher = doc.data().Voucher;
+        let userData;
+
+        // Fetch user data from the matched document
+        querySnapshot.forEach((document) => {
+          userData = document.data();
         });
 
-        console.log("Retrieved Voucher Code:", retrievedVoucher);
+        // Example: Display a welcome message
+        alert(`Welcome ${userData.Firstname} ${userData.Lastname}!`);
 
-        if (this.voucherCode !== retrievedVoucher) {
-          alert("Invalid voucher code.");
-          console.log("Voucher code mismatch.");
-          return;
-        }
+        // Store voucher code in session (optional for session management)
+        sessionStorage.setItem("voucher", this.voucherCode);
 
-        console.log("Login successful. Redirecting...");
-        this.$router.push("/voters"); // Redirect to voters page
+        // Redirect to a protected page or dashboard
+        this.$router.push("/voters");
       } catch (error) {
-        console.error("Login error:", {
-          message: error.message,
-          stack: error.stack,
-          code: error.code || "No error code provided",
-        });
-        alert(`An unexpected error occurred: ${error.message}`);
+        console.error("Error logging in with voucher:", error);
+        alert("An error occurred during login. Please try again.");
       }
     },
   },
 };
 </script>
+
 
 <style scoped>
 @font-face {
