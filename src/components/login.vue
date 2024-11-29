@@ -84,22 +84,23 @@ html, body {
   margin: 0; /* Remove default margin */
   padding: 0; /* Remove default padding */
 }
+
 .constraint-layout {
-  position: absolute; /* Change to absolute positioning */
-  top: 0; /* Align to the top */
-  left: 0; /* Align to the left */
-  height: 91.60%; /* Full viewport height */
-  width: 95.88%; /* Full viewport width */
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 100vw;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 2rem;
-  background-image: url('@/assets/facade1.png'); /* Background image */
-  background-size: cover; /* Ensure the image covers the entire screen */
-  background-position: center; /* Center the image */
-  background-repeat: no-repeat; /* Prevent repeating */
+
+  background-image: url('@/assets/facade1.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat; 
 }
 
 .overlay {

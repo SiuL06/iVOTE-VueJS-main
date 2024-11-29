@@ -141,22 +141,23 @@ html, body {
 }
 
 .constraint-layout {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
-  height: 91.60%;
-  width: 95.88%;
+  height: 100vh;
+  width: 100vw;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 2rem;
+
   background-image: url('@/assets/facade1.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
 }
+
 
 .overlay {
   background-color: rgba(0, 0, 0, 0.7);
