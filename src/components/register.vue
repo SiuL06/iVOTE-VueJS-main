@@ -101,11 +101,12 @@ export default {
 
     // Function to send the voucher email using EmailJS
     sendVoucherEmail(email, firstname, voucherCode) {
-      const templateParams = {
-        to_name: firstname, // Maps to {{to_name}} in the EmailJS template
-        from_name: "System Admin", // Static name; Maps to {{from_name}}
-        message: `Your voucher code is: ${voucherCode}`, // Maps to {{message}} in the EmailJS template
-      };
+  const templateParams = {
+    to_email: email, // Dynamically pass the recipient's email
+    to_name: firstname, // Maps to {{to_name}} in the template
+    from_name: "System Admin", // Static name; Maps to {{from_name}}
+    message: `Your voucher code is: ${voucherCode}`, // Maps to {{message}} in the template
+  };
 
       emailjs
         .send(
