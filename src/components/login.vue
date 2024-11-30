@@ -36,32 +36,66 @@ export default {
       try {
         const db = getFirestore();
 
-        // Query Firestore to find the user with the matching voucher code
+        // Validate voucher input
+        const trimmedVoucher = this.voucherCode.trim();
+        if (!trimmedVoucher) {
+          alert("Please enter a voucher code.");
+          return;
+        }
+
+        // Query the `users` collection to find a matching voucher
         const userQuery = query(
           collection(db, "users"),
-          where("Voucher", "==", this.voucherCode)
+          where("Voucher", "==", trimmedVoucher)
         );
-        const querySnapshot = await getDocs(userQuery);
+        const userSnapshot = await getDocs(userQuery);
 
-        if (querySnapshot.empty) {
+        // If no user is found with the voucher, deny login
+        if (userSnapshot.empty) {
           alert("Invalid voucher code. Please try again.");
           return;
         }
 
         let userData;
 
-        // Fetch user data from the matched document
-        querySnapshot.forEach((document) => {
-          userData = document.data();
+        // Retrieve the user data from the matched document
+        userSnapshot.forEach((document) => {
+          userData = { id: document.id, ...document.data() };
         });
 
-        // Example: Display a welcome message
+        // Parse `validFrom` and `validTo` as JavaScript Date objects
+        const currentTime = new Date();
+        const validFrom = userData.validFrom ? new Date(userData.validFrom.replace(/"/g, "")) : null;
+        const validTo = userData.validTo ? new Date(userData.validTo.replace(/"/g, "")) : null;
+
+        // Validate the time range for the voucher
+        if (validFrom && currentTime < validFrom) {
+          alert(`This voucher is not valid until ${validFrom.toLocaleString()}.`);
+          return;
+        }
+
+        if (validTo && currentTime > validTo) {
+          alert(`This voucher expired on ${validTo.toLocaleString()}.`);
+          return;
+        }
+
+        // Check if the voucher has already been used
+        const voteQuery = query(
+          collection(db, "votes"),
+          where("Voucher", "==", trimmedVoucher)
+        );
+        const voteSnapshot = await getDocs(voteQuery);
+
+        if (!voteSnapshot.empty) {
+          alert("You have already submitted your vote. You cannot vote again.");
+          return;
+        }
+
+        // Successful login - Store voucher and user details in sessionStorage
+        sessionStorage.setItem("voucher", trimmedVoucher);
+        sessionStorage.setItem("user", JSON.stringify(userData));
+
         alert(`Welcome ${userData.Firstname} ${userData.Lastname}!`);
-
-        // Store voucher code in session (optional for session management)
-        sessionStorage.setItem("voucher", this.voucherCode);
-
-        // Redirect to a protected page or dashboard
         this.$router.push("/voters");
       } catch (error) {
         console.error("Error logging in with voucher:", error);
@@ -73,13 +107,25 @@ export default {
 </script>
 
 
+
+
+<style scoped>
+/* Your existing styles */
+</style>
+
+
+
+
+
+
 <style scoped>
 @font-face {
-  font-family: 'agrandir';
-  src: url('@/assets/agrandir.otf');
+  font-family: "agrandir";
+  src: url("@/assets/agrandir.otf");
 }
 
-html, body {
+html,
+body {
   height: 100%;
   margin: 0; /* Remove default margin */
   padding: 0; /* Remove default padding */
@@ -97,10 +143,10 @@ html, body {
   justify-content: center;
   text-align: center;
 
-  background-image: url('@/assets/facade1.png');
+  background-image: url("@/assets/facade1.png");
   background-size: cover;
   background-position: center;
-  background-repeat: no-repeat; 
+  background-repeat: no-repeat;
 }
 
 .overlay {

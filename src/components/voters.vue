@@ -4,10 +4,10 @@
     <div class="overlay-container">
       <h2>Vote for Your Candidate</h2>
 
-      <!-- Display containers for each position -->
+      <!-- Display containers for each filtered position -->
       <div
         class="position-container"
-        v-for="position in orderedPositions"
+        v-for="position in filteredPositions"
         :key="position"
       >
         <h3 class="position-title">{{ position }}</h3>
@@ -50,24 +50,30 @@
   </div>
 </template>
 
-
-
 <script>
 import {
   getFirestore,
   collection,
-  onSnapshot,
   doc,
+  addDoc,
   updateDoc,
   increment,
+  Timestamp,
+  onSnapshot,
+  query,
+  where,
+  getDocs,
 } from "firebase/firestore";
 
 export default {
   name: "VoterComponent",
   data() {
     return {
-      candidates: [], // List of candidates from Firebase
-      selectedCandidate: {}, // Tracks selected candidates per position
+      candidates: [],
+      selectedCandidate: {},
+      hasVoted: false,
+      userVoucher: "",
+      userDepartment: "",
       orderedPositions: [
         "PRESIDENT",
         "VICE-PRESIDENT",
@@ -91,7 +97,6 @@ export default {
   },
   computed: {
     groupedNominees() {
-      // Group candidates by their position
       return this.candidates.reduce((groups, candidate) => {
         const position = candidate.position || "Others";
         if (!groups[position]) groups[position] = [];
@@ -99,21 +104,76 @@ export default {
         return groups;
       }, {});
     },
+    filteredPositions() {
+      // Return positions that have at least one candidate
+      return this.orderedPositions.filter(
+        (position) => this.groupedNominees[position]?.length > 0
+      );
+    },
   },
   methods: {
+    async fetchUserData() {
+      try {
+        const db = getFirestore();
+
+        // Retrieve voucher from sessionStorage
+        const voucherCode = sessionStorage.getItem("voucher");
+        if (!voucherCode) {
+          alert("Session expired. Please log in again.");
+          this.$router.push("/");
+          return;
+        }
+
+        // Query the user details from Firestore
+        const userQuery = query(
+          collection(db, "users"),
+          where("Voucher", "==", voucherCode)
+        );
+        const userSnapshot = await getDocs(userQuery);
+
+        if (userSnapshot.empty) {
+          alert("User not found. Please log in again.");
+          this.$router.push("/");
+          return;
+        }
+
+        const userData = userSnapshot.docs[0].data();
+        this.userVoucher = userData.Voucher;
+        this.userDepartment = userData.Department;
+
+        // Check if the user has already voted
+        const votesQuery = query(
+          collection(db, "votes"),
+          where("Voucher", "==", voucherCode)
+        );
+        const votesSnapshot = await getDocs(votesQuery);
+
+        if (!votesSnapshot.empty) {
+          this.hasVoted = true;
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
+    },
     selectCandidate(candidateId, position) {
-      // Toggle the selection for the given position
       if (this.selectedCandidate[position] === candidateId) {
-        delete this.selectedCandidate[position]; // Unset the candidate if already selected
+        // Unselect the candidate
+        delete this.selectedCandidate[position];
       } else {
+        // Select the candidate
         this.selectedCandidate = {
-          ...this.selectedCandidate, // Preserve existing selections
-          [position]: candidateId, // Update the selection for the current position
+          ...this.selectedCandidate,
+          [position]: candidateId,
         };
       }
       console.log("Updated selectedCandidate:", this.selectedCandidate);
     },
     async confirmVote() {
+      if (this.hasVoted) {
+        alert("You have already voted. You cannot vote again.");
+        return;
+      }
+
       if (Object.keys(this.selectedCandidate).length === 0) {
         alert("Please select at least one candidate to vote.");
         return;
@@ -121,39 +181,41 @@ export default {
 
       try {
         const db = getFirestore();
-        const votes = []; // To track recorded votes for alert feedback
+        const votes = [];
 
-        // Process each selected candidate
         for (const [position, candidateId] of Object.entries(
           this.selectedCandidate
         )) {
           const candidate = this.candidates.find((c) => c.id === candidateId);
           if (candidate) {
-            const candidateDocRef = doc(db, "nominees", candidate.id);
-
-            // Increment the vote count in Firestore
-            await updateDoc(candidateDocRef, {
+            await updateDoc(doc(db, "nominees", candidate.id), {
               score: increment(1),
             });
 
-            // Add the vote to the feedback array
+            await addDoc(collection(db, "votes"), {
+              Candidate: candidate.name,
+              Position: position,
+              Department: this.userDepartment,
+              Voucher: this.userVoucher,
+              Timestamp: Timestamp.now(),
+            });
+
             votes.push(`${position}: ${candidate.name}`);
           }
         }
 
-        // Provide feedback to the user
+        this.hasVoted = true;
         alert(`Your votes have been recorded:\n${votes.join("\n")}`);
-        this.selectedCandidate = {}; // Reset selection after voting
+        this.selectedCandidate = {};
       } catch (error) {
         console.error("Error saving votes:", error);
-        alert("An error occurred while saving your votes. Please try again.");
+        alert("An error occurred. Please try again.");
       }
     },
     fetchCandidates() {
       const db = getFirestore();
       const nomineesRef = collection(db, "nominees");
 
-      // Listen for real-time updates from Firestore
       onSnapshot(nomineesRef, (snapshot) => {
         this.candidates = snapshot.docs.map((doc) => ({
           id: doc.id,
@@ -162,11 +224,16 @@ export default {
       });
     },
   },
-  mounted() {
-    this.fetchCandidates(); // Fetch candidates when the component is mounted
+  async mounted() {
+    await this.fetchCandidates();
+    await this.fetchUserData();
   },
 };
 </script>
+
+<style scoped>
+/* Add the same styles from your original code */
+</style>
 
 
 <style scoped>
@@ -180,7 +247,7 @@ body {
   height: 100%;
   margin: 0;
   padding: 0;
-  overflow-y: auto; /* Enable scrolling */
+  overflow-y: auto;
 }
 
 .constraint-layout {
@@ -247,7 +314,7 @@ h2 {
   flex-direction: column;
   align-items: center;
   padding: 1rem;
-  position: relative; /* Make this the relative container for the checkmark */
+  position: relative;
 }
 
 .candidate-card:hover {
@@ -312,5 +379,4 @@ button.submit-votes {
 button.submit-votes:hover {
   background-color: #0056b3;
 }
-
 </style>
