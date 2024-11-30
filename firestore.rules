@@ -2,27 +2,37 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Allow read and write access to the users collection
+    // Users Collection
     match /users/{userId} {
-      allow read, write: if true; // Allow only authenticated users
+      allow read: if resource.data.Voucher is string;
+      allow write: if false;
     }
 
-    // Allow read and write access to the nominees collection
+    // Nominees Collection
     match /nominees/{nomineeId} {
-      allow read: if true; // Allow everyone to read
-      allow write: if request.auth != null; // Allow only authenticated users to write
+      allow read: if true;
+      allow write: if request.auth != null;
     }
 
-    // Allow read-only access to the electionresults collection
+    // Election Results Collection
     match /electionresults/{resultId} {
-      allow read: if true; // Allow everyone to read
-      allow write: if request.auth != null; // Allow only authenticated users to write
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.admin == true;
     }
 
-    // Allow read and write access to the votes collection
+    // Votes Collection
     match /votes/{voteId} {
-      allow read: if request.auth != null; // Allow authenticated users to read
-      allow write: if request.auth != null; // Allow authenticated users to write
+      allow read: if true;
+      allow write: if request.auth != null &&
+                   request.resource.data.Voucher is string &&
+                   request.resource.data.Candidate is string &&
+                   request.resource.data.Position is string &&
+                   request.resource.data.Department is string &&
+                   request.resource.data.Timestamp is timestamp &&
+                   request.resource.data.validFrom is timestamp &&
+                   request.resource.data.validTo is timestamp &&
+                   request.time >= request.resource.data.validFrom &&
+                   request.time <= request.resource.data.validTo;
     }
   }
 }
