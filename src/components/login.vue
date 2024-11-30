@@ -36,7 +36,7 @@ export default {
   name: "LoginComponent",
   data() {
     return {
-      voucherCode: "", // Voucher code input by the user
+      voucherCode: "", // User's voucher input
       isSubmitting: false, // Prevent duplicate submissions
       userData: null, // Retrieved user data
     };
@@ -48,7 +48,7 @@ export default {
         const userCredential = await signInAnonymously(auth);
         console.log("User authenticated:", userCredential.user);
       } catch (error) {
-        console.error("Authentication error:", error);
+        console.error("Authentication error:", error.message);
         alert("Failed to authenticate. Please refresh and try again.");
       }
     },
@@ -58,12 +58,14 @@ export default {
       try {
         const db = getFirestore();
 
+        // Validate input
         const trimmedVoucher = this.voucherCode.trim();
         if (!trimmedVoucher) {
           alert("Please enter a valid voucher code.");
           return;
         }
 
+        // Query the Firestore `users` collection
         const userQuery = query(
           collection(db, "users"),
           where("Voucher", "==", trimmedVoucher)
@@ -99,7 +101,7 @@ export default {
         alert(`Welcome, ${userData.Firstname} ${userData.Lastname}!`);
         this.$router.push("/voters");
       } catch (error) {
-        console.error("Error logging in with voucher:", error);
+        console.error("Error logging in with voucher:", error.message);
         alert("An error occurred during login. Please try again.");
       } finally {
         this.isSubmitting = false;
