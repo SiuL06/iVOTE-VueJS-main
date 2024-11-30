@@ -21,105 +21,96 @@
   </div>
 </template>
 
+
 <script>
-import { getFirestore, collection, query, where, getDocs } from "firebase/firestore";
+import {
+  getFirestore,
+  collection,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
+import { getAuth, signInAnonymously } from "firebase/auth";
 
 export default {
-  name: "VoucherLoginForm",
+  name: "LoginComponent",
   data() {
     return {
-      voucherCode: "", // Stores the voucher code entered by the user
+      voucherCode: "", // Voucher code input by the user
+      isSubmitting: false, // Prevent duplicate submissions
+      userData: null, // Retrieved user data
     };
   },
   methods: {
+    async authenticateUser() {
+      const auth = getAuth();
+      try {
+        const userCredential = await signInAnonymously(auth);
+        console.log("User authenticated:", userCredential.user);
+      } catch (error) {
+        console.error("Authentication error:", error);
+        alert("Failed to authenticate. Please refresh and try again.");
+      }
+    },
+
     async loginWithVoucher() {
+      this.isSubmitting = true;
       try {
         const db = getFirestore();
 
-        // Validate voucher input
         const trimmedVoucher = this.voucherCode.trim();
         if (!trimmedVoucher) {
-          alert("Please enter a voucher code.");
+          alert("Please enter a valid voucher code.");
           return;
         }
 
-        // Query the `users` collection to find a matching voucher
         const userQuery = query(
           collection(db, "users"),
           where("Voucher", "==", trimmedVoucher)
         );
         const userSnapshot = await getDocs(userQuery);
 
-        // If no user is found with the voucher, deny login
         if (userSnapshot.empty) {
           alert("Invalid voucher code. Please try again.");
           return;
         }
 
-        let userData;
-        userSnapshot.forEach((document) => {
-          userData = { id: document.id, ...document.data() };
-        });
+        const userData = userSnapshot.docs[0].data();
+        this.userData = userData;
 
-        // Check if the voucher has already been used
-        const voteQuery = query(
-          collection(db, "votes"),
-          where("Voucher", "==", trimmedVoucher)
-        );
-        const voteSnapshot = await getDocs(voteQuery);
-
-        if (!voteSnapshot.empty) {
-          alert("You have already submitted your vote. You cannot vote again.");
-          return;
-        }
-
-        // Parse `validFrom` and `validTo` as JavaScript Date objects
+        // Check voting time validity
         const currentTime = new Date();
-        const validFrom =
-          userData.validFrom && typeof userData.validFrom === "string"
-            ? new Date(userData.validFrom) // Parse string to Date
-            : null;
-        const validTo =
-          userData.validTo && typeof userData.validTo === "string"
-            ? new Date(userData.validTo) // Parse string to Date
-            : null;
+        const validFrom = userData.validFrom.toDate();
+        const validTo = userData.validTo.toDate();
 
-        // Validate the time range for the voucher
-        if (validFrom && currentTime < validFrom) {
-          alert(`This voucher is not valid until ${validFrom.toLocaleString()}.`);
+        if (currentTime < validFrom) {
+          alert(`Voting is not valid until ${validFrom.toLocaleString()}.`);
           return;
         }
 
-        if (validTo && currentTime > validTo) {
-          alert(`This voucher expired on ${validTo.toLocaleString()}.`);
+        if (currentTime > validTo) {
+          alert(`Voting ended on ${validTo.toLocaleString()}.`);
           return;
         }
 
-        // Successful login - Store voucher and user details in sessionStorage
+        // Save user session and redirect
         sessionStorage.setItem("voucher", trimmedVoucher);
         sessionStorage.setItem("user", JSON.stringify(userData));
-
-        alert(`Welcome ${userData.Firstname} ${userData.Lastname}!`);
+        alert(`Welcome, ${userData.Firstname} ${userData.Lastname}!`);
         this.$router.push("/voters");
       } catch (error) {
-        console.error("Error logging in with voucher:", error.message, error.stack);
+        console.error("Error logging in with voucher:", error);
         alert("An error occurred during login. Please try again.");
+      } finally {
+        this.isSubmitting = false;
       }
     },
   },
+  async mounted() {
+    await this.authenticateUser();
+  },
 };
 </script>
-
-
-
-
-
-<style scoped>
-/* Your existing styles */
-</style>
-
-
-
 
 
 
