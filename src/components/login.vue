@@ -23,7 +23,6 @@
 
 <script>
 import { getFirestore, collection, query, where, getDocs } from "firebase/firestore";
-import { getAuth, signInAnonymously } from "firebase/auth";
 
 export default {
   name: "VoucherLoginForm",
@@ -34,26 +33,15 @@ export default {
     };
   },
   methods: {
-    async authenticateUser() {
-      const auth = getAuth();
-      try {
-        // Sign in the user anonymously
-        const userCredential = await signInAnonymously(auth);
-        console.log("User authenticated:", userCredential.user);
-      } catch (error) {
-        console.error("Authentication error:", error);
-        alert("Failed to authenticate. Please refresh and try again.");
-      }
-    },
     async loginWithVoucher() {
-      this.isSubmitting = true; // Prevent multiple submissions
+      this.isSubmitting = true;
       try {
         const db = getFirestore();
 
         // Validate voucher input
         const trimmedVoucher = this.voucherCode.trim();
         if (!trimmedVoucher) {
-          alert("Please enter a valid voucher code.");
+          alert("Please enter a voucher code.");
           return;
         }
 
@@ -66,11 +54,8 @@ export default {
         );
         const userSnapshot = await getDocs(userQuery);
 
-        console.log("Firestore Query Result:", userSnapshot.docs);
-
         // If no user is found with the voucher, deny login
         if (userSnapshot.empty) {
-          console.error("Voucher not found in Firestore.");
           alert("Invalid voucher code. Please try again.");
           return;
         }
@@ -91,30 +76,58 @@ export default {
         );
         const voteSnapshot = await getDocs(voteQuery);
 
-        console.log("Vote Query Result:", voteSnapshot.docs);
-
         if (!voteSnapshot.empty) {
-          console.warn("Voucher already used for voting.");
           alert("You have already submitted your vote. You cannot vote again.");
           return;
         }
 
-        // Save user session and redirect
+        // Check voting time validity
+        const currentTime = new Date();
+        let validFrom, validTo;
+
+        try {
+          // Handle Firestore Timestamp or ISO string formats
+          validFrom =
+            userData.validFrom instanceof Date
+              ? userData.validFrom
+              : new Date(userData.validFrom);
+          validTo =
+            userData.validTo instanceof Date
+              ? userData.validTo
+              : new Date(userData.validTo);
+        } catch (error) {
+          console.error("Error parsing validFrom/validTo fields:", error);
+          alert("Invalid voting period configuration. Please contact support.");
+          return;
+        }
+
+        console.log("Current Time:", currentTime);
+        console.log("validFrom:", validFrom);
+        console.log("validTo:", validTo);
+
+        if (currentTime < validFrom) {
+          alert(`Voting is not valid until ${validFrom.toLocaleString()}.`);
+          return;
+        }
+
+        if (currentTime > validTo) {
+          alert(`Voting ended on ${validTo.toLocaleString()}.`);
+          return;
+        }
+
+        // Successful login - Store voucher and user details in sessionStorage
         sessionStorage.setItem("voucher", trimmedVoucher);
         sessionStorage.setItem("user", JSON.stringify(userData));
-        alert(`Welcome, ${userData.Firstname} ${userData.Lastname}!`);
+
+        alert(`Welcome ${userData.Firstname} ${userData.Lastname}!`);
         this.$router.push("/voters");
       } catch (error) {
         console.error("Error logging in with voucher:", error);
         alert("An error occurred during login. Please try again.");
       } finally {
-        this.isSubmitting = false; // Re-enable the button
+        this.isSubmitting = false;
       }
     },
-  },
-  async mounted() {
-    // Authenticate the user when the component mounts
-    await this.authenticateUser();
   },
 };
 </script>
@@ -128,8 +141,8 @@ export default {
 html,
 body {
   height: 100%;
-  margin: 0; /* Remove default margin */
-  padding: 0; /* Remove default padding */
+  margin: 0;
+  padding: 0;
 }
 
 .constraint-layout {
@@ -151,9 +164,9 @@ body {
 }
 
 .overlay {
-  background-color: rgba(0, 0, 0, 0.7); /* Black background with 70% opacity */
+  background-color: rgba(0, 0, 0, 0.7);
   padding: 2rem;
-  border-radius: 8px; /* Optional: Rounded corners */
+  border-radius: 8px;
 }
 
 h2 {
@@ -202,24 +215,6 @@ button {
 
 button:hover {
   background-color: #218838;
-  transition: background-color 0.3s ease;
-}
-
-.register-button {
-  padding: 0.8rem 2rem;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  width: 100%;
-  max-width: 300px;
-  font-size: 1.1rem;
-  margin-top: 1rem;
-}
-
-.register-button:hover {
-  background-color: #0056b3;
   transition: background-color 0.3s ease;
 }
 
