@@ -69,34 +69,22 @@ export default {
 
         console.log("User Data Retrieved:", userData);
 
-        // Check if the voucher has already been used
-        const voteQuery = query(
-          collection(db, "votes"),
-          where("Voucher", "==", trimmedVoucher)
-        );
-        const voteSnapshot = await getDocs(voteQuery);
-
-        if (!voteSnapshot.empty) {
-          alert("You have already submitted your vote. You cannot vote again.");
-          return;
-        }
-
         // Check voting time validity
         const currentTime = new Date();
         let validFrom, validTo;
 
         try {
-          // Handle Firestore Timestamp or ISO string formats
+          // Parse `validFrom` and `validTo` fields
           validFrom =
-            userData.validFrom instanceof Date
-              ? userData.validFrom
-              : new Date(userData.validFrom);
+            typeof userData.validFrom === "string"
+              ? new Date(userData.validFrom.replace(/"/g, ""))
+              : userData.validFrom.toDate();
           validTo =
-            userData.validTo instanceof Date
-              ? userData.validTo
-              : new Date(userData.validTo);
-        } catch (error) {
-          console.error("Error parsing validFrom/validTo fields:", error);
+            typeof userData.validTo === "string"
+              ? new Date(userData.validTo)
+              : userData.validTo.toDate();
+        } catch (parseError) {
+          console.error("Error parsing validFrom/validTo fields:", parseError);
           alert("Invalid voting period configuration. Please contact support.");
           return;
         }
@@ -131,6 +119,7 @@ export default {
   },
 };
 </script>
+
 
 <style scoped>
 @font-face {
