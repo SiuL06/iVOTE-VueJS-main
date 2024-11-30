@@ -7,7 +7,6 @@ import admin from 'firebase-admin';
 import bodyParser from 'body-parser';
 
 
-// Initialize Firebase Admin SDK
 
 
 // Create __dirname equivalent
