@@ -69,11 +69,13 @@ export default {
   name: "VoterComponent",
   data() {
     return {
-      candidates: [],
-      selectedCandidate: {},
-      hasVoted: false,
-      userVoucher: "",
-      userDepartment: "",
+      candidates: [], // List of candidates
+      selectedCandidate: {}, // Selected candidates for each position
+      hasVoted: false, // Track if the user has already voted
+      userVoucher: "", // User's voucher code
+      userDepartment: "", // User's department
+      isSubmitting: false, // Prevent duplicate submissions
+      isLoading: false, // Loading state for async operations
       orderedPositions: [
         "PRESIDENT",
         "VICE-PRESIDENT",
@@ -113,6 +115,7 @@ export default {
   },
   methods: {
     async fetchUserData() {
+      this.isLoading = true;
       try {
         const db = getFirestore();
 
@@ -120,6 +123,7 @@ export default {
         const voucherCode = sessionStorage.getItem("voucher");
         if (!voucherCode) {
           alert("Session expired. Please log in again.");
+          sessionStorage.clear();
           this.$router.push("/");
           return;
         }
@@ -133,6 +137,7 @@ export default {
 
         if (userSnapshot.empty) {
           alert("User not found. Please log in again.");
+          sessionStorage.clear();
           this.$router.push("/");
           return;
         }
@@ -153,6 +158,8 @@ export default {
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
+      } finally {
+        this.isLoading = false;
       }
     },
     selectCandidate(candidateId, position) {
@@ -178,6 +185,9 @@ export default {
         alert("Please select at least one candidate to vote.");
         return;
       }
+
+      if (this.isSubmitting) return; // Prevent duplicate submissions
+      this.isSubmitting = true;
 
       try {
         const db = getFirestore();
@@ -210,13 +220,15 @@ export default {
       } catch (error) {
         console.error("Error saving votes:", error);
         alert("An error occurred. Please try again.");
+      } finally {
+        this.isSubmitting = false;
       }
     },
     fetchCandidates() {
       const db = getFirestore();
       const nomineesRef = collection(db, "nominees");
 
-      onSnapshot(nomineesRef, (snapshot) => {
+      this.unsubscribe = onSnapshot(nomineesRef, (snapshot) => {
         this.candidates = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
@@ -228,12 +240,18 @@ export default {
     await this.fetchCandidates();
     await this.fetchUserData();
   },
+  beforeUnmount() {
+    if (this.unsubscribe) {
+      this.unsubscribe();
+    }
+  },
 };
 </script>
 
 <style scoped>
-/* Add the same styles from your original code */
+/* Add styles as per your design requirements */
 </style>
+
 
 
 <style scoped>
