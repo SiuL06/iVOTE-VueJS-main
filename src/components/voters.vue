@@ -58,11 +58,11 @@ import {
   addDoc,
   updateDoc,
   increment,
-  Timestamp,
   onSnapshot,
   query,
   where,
   getDocs,
+  Timestamp,
 } from "firebase/firestore";
 
 export default {
@@ -77,8 +77,14 @@ export default {
       isSubmitting: false, // Prevent duplicate submissions
       isLoading: false, // Loading state for async operations
       orderedPositions: [
-        // Predefined positions
-      ],
+        "PRESIDENT",
+        "VICE PRESIDENT",
+        "SECRETARY",
+        "TREASURER",
+        "AUDITOR",
+        "PUBLIC RELATIONS OFFICER",
+        "PUBLIC INFORMATION OFFICER",
+      ], // Predefined positions
     };
   },
   computed: {
@@ -225,6 +231,11 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+/* Add your styles here */
+</style>
+
 
 
 
