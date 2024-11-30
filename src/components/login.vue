@@ -57,27 +57,9 @@ export default {
         }
 
         let userData;
-
-        // Retrieve the user data from the matched document
         userSnapshot.forEach((document) => {
           userData = { id: document.id, ...document.data() };
         });
-
-        // Parse `validFrom` and `validTo` as JavaScript Date objects
-        const currentTime = new Date();
-        const validFrom = userData.validFrom ? new Date(userData.validFrom.replace(/"/g, "")) : null;
-        const validTo = userData.validTo ? new Date(userData.validTo.replace(/"/g, "")) : null;
-
-        // Validate the time range for the voucher
-        if (validFrom && currentTime < validFrom) {
-          alert(`This voucher is not valid until ${validFrom.toLocaleString()}.`);
-          return;
-        }
-
-        if (validTo && currentTime > validTo) {
-          alert(`This voucher expired on ${validTo.toLocaleString()}.`);
-          return;
-        }
 
         // Check if the voucher has already been used
         const voteQuery = query(
@@ -91,6 +73,21 @@ export default {
           return;
         }
 
+        // Parse `validFrom` and `validTo` fields
+        const currentTime = new Date();
+        const validFrom = userData.validFrom ? userData.validFrom.toDate() : null;
+        const validTo = userData.validTo ? userData.validTo.toDate() : null;
+
+        if (validFrom && currentTime < validFrom) {
+          alert(`This voucher is not valid until ${validFrom.toLocaleString()}.`);
+          return;
+        }
+
+        if (validTo && currentTime > validTo) {
+          alert(`This voucher expired on ${validTo.toLocaleString()}.`);
+          return;
+        }
+
         // Successful login - Store voucher and user details in sessionStorage
         sessionStorage.setItem("voucher", trimmedVoucher);
         sessionStorage.setItem("user", JSON.stringify(userData));
@@ -98,7 +95,7 @@ export default {
         alert(`Welcome ${userData.Firstname} ${userData.Lastname}!`);
         this.$router.push("/voters");
       } catch (error) {
-        console.error("Error logging in with voucher:", error);
+        console.error("Error logging in with voucher:", error.message, error.stack);
         alert("An error occurred during login. Please try again.");
       }
     },
