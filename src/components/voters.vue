@@ -77,23 +77,7 @@ export default {
       isSubmitting: false, // Prevent duplicate submissions
       isLoading: false, // Loading state for async operations
       orderedPositions: [
-        "PRESIDENT",
-        "VICE-PRESIDENT",
-        "SECRETARY",
-        "TREASURER",
-        "AUDITOR",
-        "BUSINESS MANAGER",
-        "PUBLIC INFORMATION OFFICER",
-        "PUBLIC RELATIONS OFFICER",
-        "CREATIVE DIRECTOR",
-        "EXECUTIVE ASSISTANT TO THE PRESIDENT",
-        "ASSISTANT SECRETARY",
-        "ASSISTANT TREASURER",
-        "ASSISTANT AUDITOR",
-        "ASSISTANT BUSINESS MANAGER",
-        "ASSISTANT CREATIVE DIRECTOR",
-        "CHIEF OF STAFF",
-        "EXECUTIVE STAFF",
+        // Predefined positions
       ],
     };
   },
@@ -107,7 +91,6 @@ export default {
       }, {});
     },
     filteredPositions() {
-      // Return positions that have at least one candidate
       return this.orderedPositions.filter(
         (position) => this.groupedNominees[position]?.length > 0
       );
@@ -118,9 +101,8 @@ export default {
       this.isLoading = true;
       try {
         const db = getFirestore();
-
-        // Retrieve voucher from sessionStorage
         const voucherCode = sessionStorage.getItem("voucher");
+
         if (!voucherCode) {
           alert("Session expired. Please log in again.");
           sessionStorage.clear();
@@ -128,7 +110,6 @@ export default {
           return;
         }
 
-        // Query the user details from Firestore
         const userQuery = query(
           collection(db, "users"),
           where("Voucher", "==", voucherCode)
@@ -146,7 +127,6 @@ export default {
         this.userVoucher = userData.Voucher;
         this.userDepartment = userData.Department;
 
-        // Check if the user has already voted
         const votesQuery = query(
           collection(db, "votes"),
           where("Voucher", "==", voucherCode)
@@ -158,22 +138,20 @@ export default {
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
+        alert("Failed to load user data. Please try again.");
       } finally {
         this.isLoading = false;
       }
     },
     selectCandidate(candidateId, position) {
       if (this.selectedCandidate[position] === candidateId) {
-        // Unselect the candidate
         delete this.selectedCandidate[position];
       } else {
-        // Select the candidate
         this.selectedCandidate = {
           ...this.selectedCandidate,
           [position]: candidateId,
         };
       }
-      console.log("Updated selectedCandidate:", this.selectedCandidate);
     },
     async confirmVote() {
       if (this.hasVoted) {
@@ -186,7 +164,7 @@ export default {
         return;
       }
 
-      if (this.isSubmitting) return; // Prevent duplicate submissions
+      if (this.isSubmitting) return;
       this.isSubmitting = true;
 
       try {
@@ -219,7 +197,7 @@ export default {
         this.selectedCandidate = {};
       } catch (error) {
         console.error("Error saving votes:", error);
-        alert("An error occurred. Please try again.");
+        alert("Failed to save your votes. Please try again.");
       } finally {
         this.isSubmitting = false;
       }
@@ -248,9 +226,6 @@ export default {
 };
 </script>
 
-<style scoped>
-/* Add styles as per your design requirements */
-</style>
 
 
 
