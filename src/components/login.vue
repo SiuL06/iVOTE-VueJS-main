@@ -73,15 +73,18 @@ export default {
           return;
         }
 
-        // Parse `validFrom` and `validTo` fields
+        // Parse `validFrom` and `validTo` as JavaScript Date objects
         const currentTime = new Date();
-        const validFrom = userData.validFrom
-          ? new Date(userData.validFrom)
-          : null;
-        const validTo = userData.validTo
-          ? new Date(userData.validTo)
-          : null;
+        const validFrom =
+          userData.validFrom && typeof userData.validFrom === "string"
+            ? new Date(userData.validFrom) // Parse string to Date
+            : null;
+        const validTo =
+          userData.validTo && typeof userData.validTo === "string"
+            ? new Date(userData.validTo) // Parse string to Date
+            : null;
 
+        // Validate the time range for the voucher
         if (validFrom && currentTime < validFrom) {
           alert(`This voucher is not valid until ${validFrom.toLocaleString()}.`);
           return;
