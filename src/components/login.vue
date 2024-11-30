@@ -15,7 +15,7 @@
           />
         </div>
         <!-- Login Button -->
-        <button type="submit">Login</button>
+        <button type="submit" :disabled="isSubmitting">Login</button>
       </form>
     </div>
   </div>
@@ -23,25 +23,41 @@
 
 <script>
 import { getFirestore, collection, query, where, getDocs } from "firebase/firestore";
+import { getAuth, signInAnonymously } from "firebase/auth";
 
 export default {
   name: "VoucherLoginForm",
   data() {
     return {
       voucherCode: "", // Stores the voucher code entered by the user
+      isSubmitting: false, // Prevent duplicate submissions
     };
   },
   methods: {
+    async authenticateUser() {
+      const auth = getAuth();
+      try {
+        // Sign in the user anonymously
+        const userCredential = await signInAnonymously(auth);
+        console.log("User authenticated:", userCredential.user);
+      } catch (error) {
+        console.error("Authentication error:", error);
+        alert("Failed to authenticate. Please refresh and try again.");
+      }
+    },
     async loginWithVoucher() {
+      this.isSubmitting = true; // Prevent multiple submissions
       try {
         const db = getFirestore();
 
         // Validate voucher input
         const trimmedVoucher = this.voucherCode.trim();
         if (!trimmedVoucher) {
-          alert("Please enter a voucher code.");
+          alert("Please enter a valid voucher code.");
           return;
         }
+
+        console.log("Querying Firestore for Voucher:", trimmedVoucher);
 
         // Query the `users` collection to find a matching voucher
         const userQuery = query(
@@ -50,8 +66,11 @@ export default {
         );
         const userSnapshot = await getDocs(userQuery);
 
+        console.log("Firestore Query Result:", userSnapshot.docs);
+
         // If no user is found with the voucher, deny login
         if (userSnapshot.empty) {
+          console.error("Voucher not found in Firestore.");
           alert("Invalid voucher code. Please try again.");
           return;
         }
@@ -63,6 +82,8 @@ export default {
           userData = { id: document.id, ...document.data() };
         });
 
+        console.log("User Data Retrieved:", userData);
+
         // Check if the voucher has already been used
         const voteQuery = query(
           collection(db, "votes"),
@@ -70,36 +91,33 @@ export default {
         );
         const voteSnapshot = await getDocs(voteQuery);
 
+        console.log("Vote Query Result:", voteSnapshot.docs);
+
         if (!voteSnapshot.empty) {
+          console.warn("Voucher already used for voting.");
           alert("You have already submitted your vote. You cannot vote again.");
           return;
         }
 
-        // Successful login - Store voucher and user details in sessionStorage
+        // Save user session and redirect
         sessionStorage.setItem("voucher", trimmedVoucher);
         sessionStorage.setItem("user", JSON.stringify(userData));
-
-        alert(`Welcome ${userData.Firstname} ${userData.Lastname}!`);
+        alert(`Welcome, ${userData.Firstname} ${userData.Lastname}!`);
         this.$router.push("/voters");
       } catch (error) {
         console.error("Error logging in with voucher:", error);
         alert("An error occurred during login. Please try again.");
+      } finally {
+        this.isSubmitting = false; // Re-enable the button
       }
     },
   },
+  async mounted() {
+    // Authenticate the user when the component mounts
+    await this.authenticateUser();
+  },
 };
 </script>
-
-
-
-<style scoped>
-/* Your existing styles */
-</style>
-
-
-
-
-
 
 <style scoped>
 @font-face {
@@ -187,7 +205,6 @@ button:hover {
   transition: background-color 0.3s ease;
 }
 
-/* Register button styling */
 .register-button {
   padding: 0.8rem 2rem;
   background-color: #007bff;
