@@ -79,8 +79,18 @@ export default {
         "SECRETARY",
         "TREASURER",
         "AUDITOR",
-        "PUBLIC RELATIONS OFFICER",
+        "BUSINESS MANAGER",
         "PUBLIC INFORMATION OFFICER",
+        "PUBLIC RELATIONS OFFICER",
+        "CREATIVE DIRECTOR",
+        "EXECUTIVE ASSISTANT TO THE PRESIDENT",
+        "ASSISTANT SECRETARY",
+        "ASSISTANT TREASURER",
+        "ASSISTANT AUDITOR",
+        "ASSISTANT BUSINESS MANAGER",
+        "ASSISTANT CREATIVE DIRECTOR",
+        "CHIEF OF STAFF",
+        "EXECUTIVE STAFF",
       ], // Predefined positions
     };
   },
@@ -94,6 +104,7 @@ export default {
       }, {});
     },
     filteredPositions() {
+      // Ensure the display order matches `orderedPositions` but only include positions with candidates
       return this.orderedPositions.filter(
         (position) => this.groupedNominees[position]?.length > 0
       );
@@ -201,14 +212,6 @@ export default {
   },
 };
 </script>
-
-
-<style scoped>
-/* Add your styles here */
-</style>
-
-
-
 
 
 <style scoped>
