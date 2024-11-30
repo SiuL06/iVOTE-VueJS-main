@@ -75,8 +75,12 @@ export default {
 
         // Parse `validFrom` and `validTo` fields
         const currentTime = new Date();
-        const validFrom = userData.validFrom ? userData.validFrom.toDate() : null;
-        const validTo = userData.validTo ? userData.validTo.toDate() : null;
+        const validFrom = userData.validFrom
+          ? new Date(userData.validFrom)
+          : null;
+        const validTo = userData.validTo
+          ? new Date(userData.validTo)
+          : null;
 
         if (validFrom && currentTime < validFrom) {
           alert(`This voucher is not valid until ${validFrom.toLocaleString()}.`);
@@ -102,6 +106,7 @@ export default {
   },
 };
 </script>
+
 
 
 
