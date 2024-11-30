@@ -21,98 +21,83 @@
   </div>
 </template>
 
-
 <script>
-import {
-  getFirestore,
-  collection,
-  query,
-  where,
-  getDocs,
-} from "firebase/firestore";
-import { getAuth, signInAnonymously } from "firebase/auth";
+import { getFirestore, collection, query, where, getDocs } from "firebase/firestore";
 
 export default {
-  name: "LoginComponent",
+  name: "VoucherLoginForm",
   data() {
     return {
-      voucherCode: "", // User's voucher input
-      isSubmitting: false, // Prevent duplicate submissions
-      userData: null, // Retrieved user data
+      voucherCode: "", // Stores the voucher code entered by the user
     };
   },
   methods: {
-    async authenticateUser() {
-      const auth = getAuth();
-      try {
-        const userCredential = await signInAnonymously(auth);
-        console.log("User authenticated:", userCredential.user);
-      } catch (error) {
-        console.error("Authentication error:", error.message);
-        alert("Failed to authenticate. Please refresh and try again.");
-      }
-    },
-
     async loginWithVoucher() {
-      this.isSubmitting = true;
       try {
         const db = getFirestore();
 
-        // Validate input
+        // Validate voucher input
         const trimmedVoucher = this.voucherCode.trim();
         if (!trimmedVoucher) {
-          alert("Please enter a valid voucher code.");
+          alert("Please enter a voucher code.");
           return;
         }
 
-        // Query the Firestore `users` collection
+        // Query the `users` collection to find a matching voucher
         const userQuery = query(
           collection(db, "users"),
           where("Voucher", "==", trimmedVoucher)
         );
         const userSnapshot = await getDocs(userQuery);
 
+        // If no user is found with the voucher, deny login
         if (userSnapshot.empty) {
           alert("Invalid voucher code. Please try again.");
           return;
         }
 
-        const userData = userSnapshot.docs[0].data();
-        this.userData = userData;
+        let userData;
 
-        // Check voting time validity
-        const currentTime = new Date();
-        const validFrom = userData.validFrom.toDate();
-        const validTo = userData.validTo.toDate();
+        // Retrieve the user data from the matched document
+        userSnapshot.forEach((document) => {
+          userData = { id: document.id, ...document.data() };
+        });
 
-        if (currentTime < validFrom) {
-          alert(`Voting is not valid until ${validFrom.toLocaleString()}.`);
+        // Check if the voucher has already been used
+        const voteQuery = query(
+          collection(db, "votes"),
+          where("Voucher", "==", trimmedVoucher)
+        );
+        const voteSnapshot = await getDocs(voteQuery);
+
+        if (!voteSnapshot.empty) {
+          alert("You have already submitted your vote. You cannot vote again.");
           return;
         }
 
-        if (currentTime > validTo) {
-          alert(`Voting ended on ${validTo.toLocaleString()}.`);
-          return;
-        }
-
-        // Save user session and redirect
+        // Successful login - Store voucher and user details in sessionStorage
         sessionStorage.setItem("voucher", trimmedVoucher);
         sessionStorage.setItem("user", JSON.stringify(userData));
-        alert(`Welcome, ${userData.Firstname} ${userData.Lastname}!`);
+
+        alert(`Welcome ${userData.Firstname} ${userData.Lastname}!`);
         this.$router.push("/voters");
       } catch (error) {
-        console.error("Error logging in with voucher:", error.message);
+        console.error("Error logging in with voucher:", error);
         alert("An error occurred during login. Please try again.");
-      } finally {
-        this.isSubmitting = false;
       }
     },
   },
-  async mounted() {
-    await this.authenticateUser();
-  },
 };
 </script>
+
+
+
+<style scoped>
+/* Your existing styles */
+</style>
+
+
+
 
 
 
