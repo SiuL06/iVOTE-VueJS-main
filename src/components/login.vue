@@ -141,8 +141,8 @@ export default {
 html,
 body {
   height: 100%;
-  margin: 0;
-  padding: 0;
+  margin: 0; /* Remove default margin */
+  padding: 0; /* Remove default padding */
 }
 
 .constraint-layout {
@@ -164,9 +164,9 @@ body {
 }
 
 .overlay {
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: rgba(0, 0, 0, 0.7); /* Black background with 70% opacity */
   padding: 2rem;
-  border-radius: 8px;
+  border-radius: 8px; /* Optional: Rounded corners */
 }
 
 h2 {
@@ -215,6 +215,24 @@ button {
 
 button:hover {
   background-color: #218838;
+  transition: background-color 0.3s ease;
+}
+
+.register-button {
+  padding: 0.8rem 2rem;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  width: 100%;
+  max-width: 300px;
+  font-size: 1.1rem;
+  margin-top: 1rem;
+}
+
+.register-button:hover {
+  background-color: #0056b3;
   transition: background-color 0.3s ease;
 }
 
