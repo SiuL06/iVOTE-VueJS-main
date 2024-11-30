@@ -54,14 +54,11 @@
 import {
   getFirestore,
   collection,
-  doc,
+  onSnapshot,
   addDoc,
   updateDoc,
+  doc,
   increment,
-  onSnapshot,
-  query,
-  where,
-  getDocs,
   Timestamp,
 } from "firebase/firestore";
 
@@ -103,48 +100,33 @@ export default {
     },
   },
   methods: {
-    async fetchUserData() {
+    async fetchCandidates() {
       this.isLoading = true;
       try {
         const db = getFirestore();
-        const voucherCode = sessionStorage.getItem("voucher");
+        const nomineesRef = collection(db, "nominees");
 
-        if (!voucherCode) {
-          alert("Session expired. Please log in again.");
-          sessionStorage.clear();
-          this.$router.push("/");
-          return;
-        }
+        // Subscribe to Firestore collection changes
+        this.unsubscribe = onSnapshot(
+          nomineesRef,
+          (snapshot) => {
+            this.candidates = snapshot.docs.map((doc) => ({
+              id: doc.id,
+              ...doc.data(),
+            }));
 
-        const userQuery = query(
-          collection(db, "users"),
-          where("Voucher", "==", voucherCode)
+            console.log("Candidates fetched successfully:", this.candidates);
+
+            if (!this.candidates.length) {
+              console.warn("No candidates found in Firestore.");
+            }
+          },
+          (error) => {
+            console.error("Error fetching candidates:", error);
+          }
         );
-        const userSnapshot = await getDocs(userQuery);
-
-        if (userSnapshot.empty) {
-          alert("User not found. Please log in again.");
-          sessionStorage.clear();
-          this.$router.push("/");
-          return;
-        }
-
-        const userData = userSnapshot.docs[0].data();
-        this.userVoucher = userData.Voucher;
-        this.userDepartment = userData.Department;
-
-        const votesQuery = query(
-          collection(db, "votes"),
-          where("Voucher", "==", voucherCode)
-        );
-        const votesSnapshot = await getDocs(votesQuery);
-
-        if (!votesSnapshot.empty) {
-          this.hasVoted = true;
-        }
       } catch (error) {
-        console.error("Error fetching user data:", error);
-        alert("Failed to load user data. Please try again.");
+        console.error("Error initializing candidates fetch:", error);
       } finally {
         this.isLoading = false;
       }
@@ -208,21 +190,9 @@ export default {
         this.isSubmitting = false;
       }
     },
-    fetchCandidates() {
-      const db = getFirestore();
-      const nomineesRef = collection(db, "nominees");
-
-      this.unsubscribe = onSnapshot(nomineesRef, (snapshot) => {
-        this.candidates = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-      });
-    },
   },
   async mounted() {
     await this.fetchCandidates();
-    await this.fetchUserData();
   },
   beforeUnmount() {
     if (this.unsubscribe) {
@@ -231,6 +201,7 @@ export default {
   },
 };
 </script>
+
 
 <style scoped>
 /* Add your styles here */
