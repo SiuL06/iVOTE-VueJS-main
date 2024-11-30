@@ -75,7 +75,7 @@ export default {
       isLoading: false, // Loading state for async operations
       orderedPositions: [
         "PRESIDENT",
-        "VICE PRESIDENT",
+        "VICE-PRESIDENT",
         "SECRETARY",
         "TREASURER",
         "AUDITOR",
@@ -96,18 +96,23 @@ export default {
   },
   computed: {
     groupedNominees() {
-      return this.candidates.reduce((groups, candidate) => {
+      const grouped = this.candidates.reduce((groups, candidate) => {
         const position = candidate.position || "Others";
         if (!groups[position]) groups[position] = [];
         groups[position].push(candidate);
         return groups;
       }, {});
+
+      console.log("Grouped Nominees:", grouped);
+      return grouped;
     },
     filteredPositions() {
-      // Ensure the display order matches `orderedPositions` but only include positions with candidates
-      return this.orderedPositions.filter(
+      const filtered = this.orderedPositions.filter(
         (position) => this.groupedNominees[position]?.length > 0
       );
+
+      console.log("Filtered Positions:", filtered);
+      return filtered;
     },
   },
   methods: {
