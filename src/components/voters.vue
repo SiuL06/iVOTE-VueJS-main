@@ -96,23 +96,17 @@ export default {
   },
   computed: {
     groupedNominees() {
-      const grouped = this.candidates.reduce((groups, candidate) => {
+      return this.candidates.reduce((groups, candidate) => {
         const position = candidate.position || "Others";
         if (!groups[position]) groups[position] = [];
         groups[position].push(candidate);
         return groups;
       }, {});
-
-      console.log("Grouped Nominees:", grouped);
-      return grouped;
     },
     filteredPositions() {
-      const filtered = this.orderedPositions.filter(
+      return this.orderedPositions.filter(
         (position) => this.groupedNominees[position]?.length > 0
       );
-
-      console.log("Filtered Positions:", filtered);
-      return filtered;
     },
   },
   methods: {
@@ -130,12 +124,6 @@ export default {
               id: doc.id,
               ...doc.data(),
             }));
-
-            console.log("Candidates fetched successfully:", this.candidates);
-
-            if (!this.candidates.length) {
-              console.warn("No candidates found in Firestore.");
-            }
           },
           (error) => {
             console.error("Error fetching candidates:", error);
@@ -208,6 +196,9 @@ export default {
     },
   },
   async mounted() {
+    this.userVoucher = sessionStorage.getItem("voucher") || "";
+    this.userDepartment =
+      JSON.parse(sessionStorage.getItem("user"))?.Department || "";
     await this.fetchCandidates();
   },
   beforeUnmount() {
@@ -217,6 +208,7 @@ export default {
   },
 };
 </script>
+
 
 
 <style scoped>
