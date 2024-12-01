@@ -17,6 +17,9 @@
         <!-- Login Button -->
         <button type="submit" :disabled="isSubmitting">Login</button>
       </form>
+
+      <!-- Register Button -->
+      <button class="register-button" @click="goToRegister">Register</button>
     </div>
   </div>
 </template>
@@ -160,9 +163,15 @@ export default {
         console.error("Error marking user as voted:", error);
       }
     },
+
+    // Navigate to the Register page
+    goToRegister() {
+      this.$router.push("/register");
+    },
   },
 };
 </script>
+
 
 
 
