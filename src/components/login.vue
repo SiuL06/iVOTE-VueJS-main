@@ -22,7 +22,7 @@
 </template>
 
 <script>
-import { getFirestore, collection, query, where, getDocs, updateDoc, doc } from "firebase/firestore";
+import { getFirestore, collection, query, where, getDocs, addDoc } from "firebase/firestore";
 
 export default {
   name: "VoucherLoginForm",
@@ -47,6 +47,19 @@ export default {
 
         console.log("Querying Firestore for Voucher:", trimmedVoucher);
 
+        // Query the `votes` collection to check if the voucher has already voted
+        const votesQuery = query(
+          collection(db, "votes"),
+          where("voucher", "==", trimmedVoucher)
+        );
+        const votesSnapshot = await getDocs(votesQuery);
+
+        // If there is a document with the voucher, it means the user has already voted
+        if (!votesSnapshot.empty) {
+          alert("You have already voted. You cannot log in again.");
+          return;
+        }
+
         // Query the `users` collection to find a matching voucher
         const userQuery = query(
           collection(db, "users"),
@@ -68,12 +81,6 @@ export default {
         });
 
         console.log("User Data Retrieved:", userData);
-
-        // Check if the user has already voted
-        if (userData.voted && userData.voted === true) {
-          alert("You have already voted. You cannot log in again.");
-          return;
-        }
 
         // Check voting time validity
         const currentTime = new Date();
@@ -122,11 +129,12 @@ export default {
         sessionStorage.setItem("voucher", trimmedVoucher);
         sessionStorage.setItem("user", JSON.stringify(userData));
 
-        // Mark the user as voted (this will prevent them from voting again)
-        await this.markUserAsVoted(userData.id);
-
         alert(`Welcome ${userData.Firstname} ${userData.Lastname}!`);
         this.$router.push("/voters");
+
+        // Mark the user as voted by saving a vote document
+        await this.markUserAsVoted(trimmedVoucher);
+
       } catch (error) {
         console.error("Error logging in with voucher:", error);
         alert("An error occurred during login. Please try again.");
@@ -135,19 +143,21 @@ export default {
       }
     },
 
-    // Mark the user as voted in the Firestore database
-    async markUserAsVoted(userId) {
+    // Mark the user as voted by adding an entry in the `votes` collection
+    async markUserAsVoted(voucher) {
       const db = getFirestore();
-      const userDocRef = doc(db, "users", userId);
+      const votesCollection = collection(db, "votes");
 
       try {
-        // Update the user's 'voted' status to true
-        await updateDoc(userDocRef, {
-          voted: true,
+        // Add a document to the `votes` collection with the user's voucher
+        await addDoc(votesCollection, {
+          voucher: voucher,
+          timestamp: new Date(),
         });
-        console.log(`User ${userId} has been marked as voted.`);
+
+        console.log(`Voucher ${voucher} marked as voted.`);
       } catch (error) {
-        console.error("Error updating user's voted status:", error);
+        console.error("Error marking user as voted:", error);
       }
     },
   },
