@@ -71,6 +71,7 @@ export default {
 
         // Check voting time validity
         const currentTime = new Date();
+
         let validFrom, validTo;
 
         try {
@@ -89,17 +90,25 @@ export default {
           return;
         }
 
-        console.log("Current Time:", currentTime);
+        // Convert `validFrom` and `validTo` to Philippine Time (UTC +8)
+        const philippinesTimeOffset = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
+        validFrom = new Date(validFrom.getTime() + philippinesTimeOffset);
+        validTo = new Date(validTo.getTime() + philippinesTimeOffset);
+
+        // Convert current time to Philippine Time
+        const philippinesCurrentTime = new Date(currentTime.getTime() + philippinesTimeOffset);
+
+        console.log("Current Time:", philippinesCurrentTime);
         console.log("validFrom:", validFrom);
         console.log("validTo:", validTo);
 
-        if (currentTime < validFrom) {
-          alert(`Voting is not valid until ${validFrom.toLocaleString()}.`);
+        if (philippinesCurrentTime < validFrom) {
+          alert(`Voting is not valid until ${validFrom.toLocaleString('en-PH')}.`);
           return;
         }
 
-        if (currentTime > validTo) {
-          alert(`Voting ended on ${validTo.toLocaleString()}.`);
+        if (philippinesCurrentTime > validTo) {
+          alert(`Voting ended on ${validTo.toLocaleString('en-PH')}.`);
           return;
         }
 
