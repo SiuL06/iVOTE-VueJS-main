@@ -1,6 +1,8 @@
 <template>
   <div class="constraint-layout">
     <div class="overlay">
+      <!-- Add Logo -->
+      <img src="@/assets/ivotelogo.png" alt="iVOTE Logo" class="logo" />
       <h2>Login</h2>
       <form @submit.prevent="loginWithVoucher">
         <!-- Voucher Field -->
@@ -23,6 +25,7 @@
     </div>
   </div>
 </template>
+
 
 <script>
 import { getFirestore, collection, query, where, getDocs, addDoc } from "firebase/firestore";
@@ -187,6 +190,13 @@ body {
   margin: 0; /* Remove default margin */
   padding: 0; /* Remove default padding */
 }
+
+.logo {
+  width: 200px; /* Adjust the size as needed */
+  height: auto;
+  margin-bottom: 20px; /* Space below the logo */
+}
+
 
 .constraint-layout {
   position: fixed;
