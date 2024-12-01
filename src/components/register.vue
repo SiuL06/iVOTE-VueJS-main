@@ -16,9 +16,34 @@
           <input type="text" v-model="firstname" required />
         </div>
         <div class="form-group">
-          <label for="department">Department:</label>
-          <input type="text" v-model="department" required />
-        </div>
+  <label for="department">Department:</label>
+  <select v-model="department" required>
+    <option value="">Select Department</option>
+    <option value="AAA">AAA</option>
+    <option value="BACC">BACC</option>
+    <option value="BATAS">BATAS</option>
+    <option value="BHS-PHS">BHS-PHS</option>
+    <option value="CDW">CDW</option>
+    <option value="CHARMS">CHARMS</option>
+    <option value="CRCYC">CRCYC</option>
+    <option value="CREATE">CREATE</option>
+    <option value="ICPEP">ICPEP</option>
+    <option value="INA">INA</option>
+    <option value="JPIA">JPIA</option>
+    <option value="JPPhA">JPPhA</option>
+    <option value="LEAD">LEAD</option>
+    <option value="LTSP">LTSP</option>
+    <option value="MCSA">MCSA</option>
+    <option value="NSC">NSC</option>
+    <option value="PICE">PICE</option>
+    <option value="PIIE">PIIE</option>
+    <option value="PsychSoc">PsychSoc</option>
+    <option value="SSITE">SSITE</option>
+    <option value="VE">VE</option>
+    <option value="UASAO">UASAO</option>
+  </select>
+</div>
+
         <button type="submit">Submit</button>
       </form>
 
@@ -180,6 +205,16 @@ h2 {
   width: 100%;
   max-width: 400px;
 }
+
+.form-group select {
+  width: 100%; /* Adjust width as needed */
+  max-width: 300px; /* Set maximum width */
+  padding: 10px; /* Adjust padding for height */
+  font-size: 1rem; /* Adjust font size */
+  border-radius: 8px; /* Optional: Adjust border radius */
+  border: 1px solid #ccc; /* Optional: Add border style */
+}
+
 
 label {
   font-size: 1.1rem;
