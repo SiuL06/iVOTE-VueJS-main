@@ -22,7 +22,7 @@
 </template>
 
 <script>
-import { getFirestore, collection, query, where, getDocs } from "firebase/firestore";
+import { getFirestore, collection, query, where, getDocs, updateDoc, doc } from "firebase/firestore";
 
 export default {
   name: "VoucherLoginForm",
@@ -68,6 +68,12 @@ export default {
         });
 
         console.log("User Data Retrieved:", userData);
+
+        // Check if the user has already voted
+        if (userData.voted && userData.voted === true) {
+          alert("You have already voted. You cannot log in again.");
+          return;
+        }
 
         // Check voting time validity
         const currentTime = new Date();
@@ -116,6 +122,9 @@ export default {
         sessionStorage.setItem("voucher", trimmedVoucher);
         sessionStorage.setItem("user", JSON.stringify(userData));
 
+        // Mark the user as voted (this will prevent them from voting again)
+        await this.markUserAsVoted(userData.id);
+
         alert(`Welcome ${userData.Firstname} ${userData.Lastname}!`);
         this.$router.push("/voters");
       } catch (error) {
@@ -125,9 +134,26 @@ export default {
         this.isSubmitting = false;
       }
     },
+
+    // Mark the user as voted in the Firestore database
+    async markUserAsVoted(userId) {
+      const db = getFirestore();
+      const userDocRef = doc(db, "users", userId);
+
+      try {
+        // Update the user's 'voted' status to true
+        await updateDoc(userDocRef, {
+          voted: true,
+        });
+        console.log(`User ${userId} has been marked as voted.`);
+      } catch (error) {
+        console.error("Error updating user's voted status:", error);
+      }
+    },
   },
 };
 </script>
+
 
 
 <style scoped>
