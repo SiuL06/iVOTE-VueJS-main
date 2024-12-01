@@ -72,52 +72,55 @@ export default {
     };
   },
   methods: {
-    async submitForm() {
-      try {
-        const db = getFirestore();
+  async submitForm() {
+    try {
+      const db = getFirestore();
 
-        // Query Firestore to find the user with the matching email
-        const userQuery = query(collection(db, "users"), where("Email", "==", this.email));
-        const querySnapshot = await getDocs(userQuery);
+      // Query Firestore to find the user with the matching email and department
+      const userQuery = query(collection(db, "users"),
+                              where("Email", "==", this.email),
+                              where("Department", "==", this.department));
+      const querySnapshot = await getDocs(userQuery);
 
-        if (querySnapshot.empty) {
-          alert("Email not found in the system.");
-          return;
-        }
-
-        let userDocRef;
-        let retrievedFirstname;
-
-        // Retrieve document reference and firstname
-        querySnapshot.forEach((document) => {
-          userDocRef = document.ref; // Document reference
-          retrievedFirstname = document.data().Firstname; // Fetch the existing Firstname
-        });
-
-        // Generate a random voucher code
-        this.voucherCode = this.generateVoucherCode();
-
-        // Send the voucher email using EmailJS
-        this.sendVoucherEmail(this.email, retrievedFirstname, this.voucherCode);
-
-        // Save user details along with the voucher code to Firestore
-        await setDoc(
-          userDocRef,
-          {
-            Lastname: this.lastname,
-            Firstname: this.firstname,
-            Department: this.department,
-            Voucher: this.voucherCode, // Save the voucher code
-          },
-          { merge: true } // Merge with existing fields
-        );
-
-        alert(`Registration successful! Your voucher code has been sent to ${this.email}`);
-      } catch (error) {
-        console.error("Error registering user:", error);
-        alert("An error occurred during registration. Please try again.");
+      // Check if the email and department combination exists
+      if (querySnapshot.empty) {
+        alert("Email and Department combination not found in the system.");
+        return;
       }
-    },
+
+      let userDocRef;
+      let retrievedFirstname;
+
+      // Retrieve document reference and firstname
+      querySnapshot.forEach((document) => {
+        userDocRef = document.ref; // Document reference
+        retrievedFirstname = document.data().Firstname; // Fetch the existing Firstname
+      });
+
+      // Generate a random voucher code
+      this.voucherCode = this.generateVoucherCode();
+
+      // Send the voucher email using EmailJS
+      this.sendVoucherEmail(this.email, retrievedFirstname, this.voucherCode);
+
+      // Save user details along with the voucher code to Firestore
+      await setDoc(
+        userDocRef,
+        {
+          Lastname: this.lastname,
+          Firstname: this.firstname,
+          Department: this.department,
+          Voucher: this.voucherCode, // Save the voucher code
+        },
+        { merge: true } // Merge with existing fields
+      );
+
+      alert(`Registration successful! Your voucher code has been sent to ${this.email}`);
+    } catch (error) {
+      console.error("Error registering user:", error);
+      alert("An error occurred during registration. Please try again.");
+    }
+  },
 
     // Function to generate a random voucher code
     generateVoucherCode() {
