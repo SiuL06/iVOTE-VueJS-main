@@ -217,38 +217,59 @@ export default {
   src: url("@/assets/agrandir.otf");
 }
 
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
 html,
 body {
   height: 100%;
   margin: 0;
   padding: 0;
-  overflow-y: auto;
+  overflow: hidden; /* Prevent scrolling if necessary */
 }
 
 .constraint-layout {
+  position: fixed; /* Ensures the layout fills the viewport */
+  top: 0;
+  left: 0;
   width: 100vw;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
+  height: 100vh;
+  display: flex; /* Use Flexbox to center content */
+  flex-direction: column; /* Stack items vertically */
+  justify-content: flex-start; /* Align content to the top */
+  align-items: center; /* Center content horizontally */
   background-image: url("@/assets/facade1.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  padding: 2rem 0;
+  z-index: -1;
 }
 
+
 .overlay-container {
+  margin-top: 5vh;
+  position: relative;
+  z-index: 1;
   background-color: rgba(0, 0, 0, 0.7);
   color: #ffffff;
   padding: 2rem;
   border-radius: 8px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-  z-index: 1;
   font-family: agrandir;
   width: 90%;
   max-width: 1200px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start; /* Change to start for scrolling */
+  align-items: center;
+  overflow-y: auto; /* Add scroll */
+  max-height: 90vh; /* Set a max height to trigger scrolling */
 }
+
+
 
 h2 {
   color: white;
@@ -261,6 +282,7 @@ h2 {
   margin-bottom: 2rem;
   width: 100%;
   text-align: center;
+
 }
 
 .position-title {
@@ -354,4 +376,6 @@ button.submit-votes {
 button.submit-votes:hover {
   background-color: #0056b3;
 }
+
+
 </style>
