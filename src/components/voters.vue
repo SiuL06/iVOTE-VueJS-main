@@ -62,6 +62,9 @@ import {
   Timestamp,
 } from "firebase/firestore";
 
+import { getAuth, signOut } from "firebase/auth"; // Import these from 'firebase/auth'
+
+
 export default {
   name: "VoterComponent",
   data() {
@@ -146,53 +149,58 @@ export default {
       }
     },
     async confirmVote() {
-      if (this.hasVoted) {
-        alert("You have already voted. You cannot vote again.");
-        return;
+  if (this.hasVoted) {
+    alert("You have already voted. You cannot vote again.");
+    return;
+  }
+
+  if (Object.keys(this.selectedCandidate).length === 0) {
+    alert("Please select at least one candidate to vote.");
+    return;
+  }
+
+  if (this.isSubmitting) return;
+  this.isSubmitting = true;
+
+  try {
+    const db = getFirestore();
+    const votes = [];
+
+    for (const [position, candidateId] of Object.entries(this.selectedCandidate)) {
+      const candidate = this.candidates.find((c) => c.id === candidateId);
+      if (candidate) {
+        await updateDoc(doc(db, "nominees", candidate.id), {
+          score: increment(1),
+        });
+
+        await addDoc(collection(db, "votes"), {
+          Candidate: candidate.name,
+          Position: position,
+          Department: this.userDepartment,
+          Voucher: this.userVoucher,
+          Timestamp: Timestamp.now(),
+        });
+
+        votes.push(`${position}: ${candidate.name}`);
       }
+    }
 
-      if (Object.keys(this.selectedCandidate).length === 0) {
-        alert("Please select at least one candidate to vote.");
-        return;
-      }
+    this.hasVoted = true;
+    alert(`Your votes have been recorded:\n${votes.join("\n")}`);
+    this.selectedCandidate = {};
 
-      if (this.isSubmitting) return;
-      this.isSubmitting = true;
+    // Log out the user after submitting their votes
+    const auth = getAuth(); // Import Firebase Authentication at the top of your script
+    await signOut(auth);
+    alert("You have been logged out.");
+    window.location.reload(); // Optional: Reload the page or redirect the user to the login page
+  } catch (error) {
+    console.error("Error saving votes:", error);
+    alert("Failed to save your votes. Please try again.");
+  } finally {
+    this.isSubmitting = false;
+  }
 
-      try {
-        const db = getFirestore();
-        const votes = [];
-
-        for (const [position, candidateId] of Object.entries(
-          this.selectedCandidate
-        )) {
-          const candidate = this.candidates.find((c) => c.id === candidateId);
-          if (candidate) {
-            await updateDoc(doc(db, "nominees", candidate.id), {
-              score: increment(1),
-            });
-
-            await addDoc(collection(db, "votes"), {
-              Candidate: candidate.name,
-              Position: position,
-              Department: this.userDepartment,
-              Voucher: this.userVoucher,
-              Timestamp: Timestamp.now(),
-            });
-
-            votes.push(`${position}: ${candidate.name}`);
-          }
-        }
-
-        this.hasVoted = true;
-        alert(`Your votes have been recorded:\n${votes.join("\n")}`);
-        this.selectedCandidate = {};
-      } catch (error) {
-        console.error("Error saving votes:", error);
-        alert("Failed to save your votes. Please try again.");
-      } finally {
-        this.isSubmitting = false;
-      }
     },
   },
   async mounted() {
