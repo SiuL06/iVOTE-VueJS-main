@@ -3,6 +3,8 @@
     <div class="background-overlay"></div>
     <div class="overlay-container">
       <h2>Vote for Your Candidate</h2>
+      <!-- Instruction -->
+      <p class="instruction-text">Instruction: Click your desired Candidate</p>
 
       <!-- Display containers for each filtered position -->
       <div
@@ -159,6 +161,14 @@ export default {
     return;
   }
 
+  const userConfirmation = confirm("Are you sure you want to submit your votes?");
+  if (!userConfirmation) {
+    // Reset the selection if the user chooses "No"
+    this.selectedCandidate = {};
+    alert("Your vote selection has been reset.");
+    return;
+  }
+
   if (this.isSubmitting) return;
   this.isSubmitting = true;
 
@@ -238,6 +248,15 @@ body {
   padding: 0;
   overflow: hidden; /* Prevent scrolling if necessary */
 }
+
+.instruction-text {
+  font-size: 1rem;
+  color: #ffffff;
+  text-align: center;
+  margin-bottom: 1rem;
+  font-family: agrandir;
+}
+
 
 .constraint-layout {
   position: fixed; /* Ensures the layout fills the viewport */
