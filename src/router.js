@@ -4,9 +4,9 @@ import LoginPage from './components/login.vue';
 import LandingPage from './components/landing.vue';
 import AboutPage from './components/about.vue';
 import RegisterPage from './components/register.vue';
-import ContactPage from './components/contact.vue';
 import VoterComponent from '@/components/voters.vue';
 import DetailsPage from '@/components/details.vue';
+import ContactPage from '@/components/ContactUs.vue';
 
 const routes = [
   { path: '/', component: LoginPage },
@@ -16,6 +16,7 @@ const routes = [
   { path: '/contact', component: ContactPage },
   { path: '/voters', component: VoterComponent },
   { path: '/details', component: DetailsPage },
+  { path: '/ContactUs', component: ContactPage },
 ];
 
 const router = createRouter({

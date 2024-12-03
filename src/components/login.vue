@@ -22,6 +22,9 @@
 
       <!-- Register Button -->
       <button class="register-button" @click="goToRegister">Register</button>
+
+      <!-- Contact Us Button -->
+      <button class="contact-us-button" @click="goToContactUs">Contact Us</button>
     </div>
   </div>
 </template>
@@ -171,6 +174,11 @@ export default {
     goToRegister() {
       this.$router.push("/register");
     },
+
+    // Navigate to the Contact Us page
+goToContactUs() {
+  this.$router.push("/ContactUs");
+},
   },
 };
 </script>
@@ -288,6 +296,25 @@ button:hover {
   background-color: #0056b3;
   transition: background-color 0.3s ease;
 }
+
+.contact-us-button {
+  padding: 0.8rem 2rem;
+  background-color: #ffc107;
+  color: black;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  width: 100%;
+  max-width: 300px;
+  font-size: 1.1rem;
+  margin-top: 1rem;
+}
+
+.contact-us-button:hover {
+  background-color: #e0a800;
+  transition: background-color 0.3s ease;
+}
+
 
 p {
   font-size: 1.1rem;
