@@ -97,40 +97,58 @@ export default {
         let validFrom, validTo;
 
         try {
-          // Parse `validFrom` and `validTo` fields
-          validFrom =
+          // Parse `validFrom` and `validTo` fields with AM/PM handling
+          validFrom = new Date(
             typeof userData.validFrom === "string"
-              ? new Date(userData.validFrom.replace(/"/g, ""))
-              : userData.validFrom.toDate();
-          validTo =
+              ? userData.validFrom.replace(/AM|PM/, "") // Remove AM/PM for parsing
+              : userData.validFrom.toDate()
+          );
+
+          validTo = new Date(
             typeof userData.validTo === "string"
-              ? new Date(userData.validTo)
-              : userData.validTo.toDate();
+              ? userData.validTo.replace(/AM|PM/, "") // Remove AM/PM for parsing
+              : userData.validTo.toDate()
+          );
+
+          // Adjust for PM manually
+          const isValidFromPM = userData.validFrom.includes("PM");
+          const isValidToPM = userData.validTo.includes("PM");
+
+          if (isValidFromPM && validFrom.getHours() < 12) validFrom.setHours(validFrom.getHours() + 12);
+          if (isValidToPM && validTo.getHours() < 12) validTo.setHours(validTo.getHours() + 12);
+
         } catch (parseError) {
           console.error("Error parsing validFrom/validTo fields:", parseError);
           alert("Invalid voting period configuration. Please contact support.");
           return;
         }
 
-        // Convert `validFrom` and `validTo` to Philippine Time (UTC +8)
-        const philippinesTimeOffset = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
-        validFrom = new Date(validFrom.getTime() + philippinesTimeOffset);
-        validTo = new Date(validTo.getTime() + philippinesTimeOffset);
+        // Format the dates with AM/PM for display
+        const formatOptions = {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: true, // Enable 12-hour format with AM/PM
+        };
 
-        // Convert current time to Philippine Time
-        const philippinesCurrentTime = new Date(currentTime.getTime() + philippinesTimeOffset);
+        const formattedValidFrom = validFrom.toLocaleString("en-PH", formatOptions);
+        const formattedValidTo = validTo.toLocaleString("en-PH", formatOptions);
+        const formattedCurrentTime = currentTime.toLocaleString("en-PH", formatOptions);
 
-        console.log("Current Time:", philippinesCurrentTime);
-        console.log("validFrom:", validFrom);
-        console.log("validTo:", validTo);
+        console.log("Current Time:", formattedCurrentTime);
+        console.log("validFrom:", formattedValidFrom);
+        console.log("validTo:", formattedValidTo);
 
-        if (philippinesCurrentTime < validFrom) {
-          alert(`Voting is not valid until ${validFrom.toLocaleString('en-PH')}.`);
+        if (currentTime < validFrom) {
+          alert(`Voting is not valid until ${formattedValidFrom}.`);
           return;
         }
 
-        if (philippinesCurrentTime > validTo) {
-          alert(`Voting ended on ${validTo.toLocaleString('en-PH')}.`);
+        if (currentTime > validTo) {
+          alert(`Voting ended on ${formattedValidTo}.`);
           return;
         }
 
@@ -176,12 +194,13 @@ export default {
     },
 
     // Navigate to the Contact Us page
-goToContactUs() {
-  this.$router.push("/ContactUs");
-},
+    goToContactUs() {
+      this.$router.push("/ContactUs");
+    },
   },
 };
 </script>
+
 
 
 
