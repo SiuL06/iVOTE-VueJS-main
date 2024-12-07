@@ -21,7 +21,7 @@
             :class="{ selected: selectedCandidate[position] === candidate.id }"
             @click="selectCandidate(candidate.id, position)"
           >
-            <div class="photo-container">
+            <div class="photo-container" @click="fetchCandidateDetails(candidate.id)">
               <img
                 :src="candidate.photo || 'https://via.placeholder.com/150'"
                 :alt="candidate.name"
@@ -49,6 +49,21 @@
         Submit Votes
       </button>
     </div>
+
+    <!-- Modal for Candidate Details -->
+    <div v-if="showCandidateDetailsModal" class="modal-overlay">
+      <div class="modal">
+        <h3>Candidate Details</h3>
+        <div v-if="candidateDetails">
+          <p><strong>Name:</strong> {{ candidateDetails.name }}</p>
+          <p><strong>Position:</strong> {{ candidateDetails.position }}</p>
+          <p><strong>Details:</strong> {{ candidateDetails.details || 'No details available.' }}</p>
+        </div>
+        <button class="close-modal" @click="closeCandidateDetailsModal">
+          Close
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -62,10 +77,10 @@ import {
   doc,
   increment,
   Timestamp,
+  getDoc,
 } from "firebase/firestore";
-
-import { getAuth, signOut } from "firebase/auth"; // Import these from 'firebase/auth'
-
+import Swal from "sweetalert2";
+import { getAuth, signOut } from "firebase/auth";
 
 export default {
   name: "VoterComponent",
@@ -96,7 +111,7 @@ export default {
         "ASSISTANT CREATIVE DIRECTOR",
         "CHIEF OF STAFF",
         "EXECUTIVE STAFF",
-      ], // Predefined positions
+      ],
     };
   },
   computed: {
@@ -121,7 +136,6 @@ export default {
         const db = getFirestore();
         const nomineesRef = collection(db, "nominees");
 
-        // Subscribe to Firestore collection changes
         this.unsubscribe = onSnapshot(
           nomineesRef,
           (snapshot) => {
@@ -140,6 +154,42 @@ export default {
         this.isLoading = false;
       }
     },
+    async fetchCandidateDetails(candidateId) {
+      try {
+        const db = getFirestore();
+        const candidateDoc = await getDoc(doc(db, "nominees", candidateId));
+        if (candidateDoc.exists()) {
+          const candidate = candidateDoc.data();
+
+          // Display candidate details using SweetAlert
+          Swal.fire({
+            title: `<strong>${candidate.name}</strong>`, // Candidate's name
+            html: `
+              <p><strong>Position:</strong> ${candidate.position || "No position specified"}</p>
+              <p><strong>Details:</strong> ${candidate.details || "No details provided"}</p>
+           `,
+            imageUrl: candidate.photo || "https://via.placeholder.com/150",
+            imageWidth: 150,
+            imageHeight: 150,
+            imageAlt: candidate.name,
+            confirmButtonText: "Close",
+          });
+
+          // Increment the view count for the candidate
+          await updateDoc(doc(db, "nominees", candidateId), {
+            views: increment(1),
+          });
+        } else {
+          Swal.fire({
+            icon: "error",
+            title: "Candidate Not Found",
+            text: "The selected candidate does not exist in the database.",
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching candidate details:", error);
+      }
+    },
     selectCandidate(candidateId, position) {
       if (this.selectedCandidate[position] === candidateId) {
         delete this.selectedCandidate[position];
@@ -152,20 +202,48 @@ export default {
     },
     async confirmVote() {
   if (this.hasVoted) {
-    alert("You have already voted. You cannot vote again.");
+    Swal.fire({
+      icon: "error",
+      title: "Oops...",
+      text: "You have already voted. You cannot vote again.",
+    });
     return;
   }
 
   if (Object.keys(this.selectedCandidate).length === 0) {
-    alert("Please select at least one candidate to vote.");
+    Swal.fire({
+      icon: "warning",
+      title: "No Selection",
+      text: "Please select at least one candidate to vote.",
+    });
     return;
   }
 
-  const userConfirmation = confirm("Are you sure you want to submit your votes?");
-  if (!userConfirmation) {
-    // Reset the selection if the user chooses "No"
+  const userConfirmation = await Swal.fire({
+    title: "Are you sure?",
+    html: `Do you want to submit your votes?<br>${Object.entries(
+      this.selectedCandidate
+    )
+      .map(([position, candidateId]) => {
+        const candidate = this.candidates.find((c) => c.id === candidateId);
+        return candidate
+          ? `<strong>${position}:</strong> ${candidate.name}`
+          : "";
+      })
+      .join("<br>")}`,
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Yes, submit it!",
+    cancelButtonText: "No, reset selection",
+  });
+
+  if (!userConfirmation.isConfirmed) {
     this.selectedCandidate = {};
-    alert("Your vote selection has been reset.");
+    Swal.fire({
+      icon: "info",
+      title: "Reset",
+      text: "Your vote selection has been reset.",
+    });
     return;
   }
 
@@ -174,15 +252,15 @@ export default {
 
   try {
     const db = getFirestore();
-    const votes = [];
+    const auth = getAuth();
+    const votedCandidates = []; // To store details of voted candidates
 
-    for (const [position, candidateId] of Object.entries(this.selectedCandidate)) {
+    for (const [position, candidateId] of Object.entries(
+      this.selectedCandidate
+    )) {
       const candidate = this.candidates.find((c) => c.id === candidateId);
       if (candidate) {
-        await updateDoc(doc(db, "nominees", candidate.id), {
-          score: increment(1),
-        });
-
+        // Log the vote
         await addDoc(collection(db, "votes"), {
           Candidate: candidate.name,
           Position: position,
@@ -191,27 +269,52 @@ export default {
           Timestamp: Timestamp.now(),
         });
 
-        votes.push(`${position}: ${candidate.name}`);
+        // Increment the candidate's score
+        await updateDoc(doc(db, "nominees", candidateId), {
+          score: increment(1),
+        });
+
+        // Add to votedCandidates list
+        votedCandidates.push({ position, name: candidate.name });
       }
     }
 
     this.hasVoted = true;
-    alert(`Your votes have been recorded:\n${votes.join("\n")}`);
-    this.selectedCandidate = {};
 
-    // Log out the user after submitting their votes
-    const auth = getAuth(); // Import Firebase Authentication at the top of your script
+    // Show SweetAlert with the list of candidates voted
+    const votedListHtml = votedCandidates
+      .map((vote) => `<strong>${vote.position}:</strong> ${vote.name}`)
+      .join("<br>");
+
+    await Swal.fire({
+      icon: "success",
+      title: "Vote Recorded",
+      html: `Your votes have been recorded:<br>${votedListHtml}`,
+      confirmButtonText: "OK",
+    });
+
+    // Log out the user after showing the confirmation
     await signOut(auth);
-    alert("You have been logged out.");
-    window.location.reload(); // Optional: Reload the page or redirect the user to the login page
+
+    Swal.fire({
+      icon: "success",
+      title: "Logged Out",
+      text: "You have been logged out after voting.",
+    });
+
+    window.location.reload(); // Reload the page
   } catch (error) {
-    console.error("Error saving votes:", error);
-    alert("Failed to save your votes. Please try again.");
+    console.error("Error submitting votes:", error);
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: "Failed to submit your votes. Please try again.",
+    });
   } finally {
     this.isSubmitting = false;
   }
+}
 
-    },
   },
   async mounted() {
     this.userVoucher = sessionStorage.getItem("voucher") || "";
@@ -389,6 +492,11 @@ h2 {
   font-size: 1.5rem;
   font-weight: bold;
 }
+
+.details-text {
+  white-space: pre-line;
+}
+
 
 button.submit-votes {
   margin-top: 1rem;

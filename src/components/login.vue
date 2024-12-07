@@ -32,6 +32,8 @@
 
 <script>
 import { getFirestore, collection, query, where, getDocs, addDoc } from "firebase/firestore";
+import Swal from 'sweetalert2';
+
 
 export default {
   name: "VoucherLoginForm",
@@ -50,7 +52,7 @@ export default {
         // Validate voucher input
         const trimmedVoucher = this.voucherCode.trim();
         if (!trimmedVoucher) {
-          alert("Please enter a voucher code.");
+          Swal.fire("Please enter a voucher code.");
           return;
         }
 
@@ -65,7 +67,7 @@ export default {
 
         // If there is a document with the voucher, it means the user has already voted
         if (!votesSnapshot.empty) {
-          alert("You have already voted. You cannot log in again.");
+          Swal.fire("You have already voted. You cannot log in again.");
           return;
         }
 
@@ -78,7 +80,7 @@ export default {
 
         // If no user is found with the voucher, deny login
         if (userSnapshot.empty) {
-          alert("Invalid voucher code. Please try again.");
+          Swal.fire("Invalid voucher code. Please try again.");
           return;
         }
 
@@ -119,7 +121,7 @@ export default {
 
         } catch (parseError) {
           console.error("Error parsing validFrom/validTo fields:", parseError);
-          alert("Invalid voting period configuration. Please contact support.");
+          Swal.fire("Invalid voting period configuration. Please contact support.");
           return;
         }
 
@@ -143,12 +145,12 @@ export default {
         console.log("validTo:", formattedValidTo);
 
         if (currentTime < validFrom) {
-          alert(`Voting is not valid until ${formattedValidFrom}.`);
+          Swal.fire(`Voting is not valid until ${formattedValidFrom}.`);
           return;
         }
 
         if (currentTime > validTo) {
-          alert(`Voting ended on ${formattedValidTo}.`);
+          Swal.fire(`Voting ended on ${formattedValidTo}.`);
           return;
         }
 
@@ -156,7 +158,7 @@ export default {
         sessionStorage.setItem("voucher", trimmedVoucher);
         sessionStorage.setItem("user", JSON.stringify(userData));
 
-        alert(`Welcome ${userData.Firstname} ${userData.Lastname}!`);
+        Swal.fire(`Welcome ${userData.Firstname} ${userData.Lastname}!`);
         this.$router.push("/voters");
 
         // Mark the user as voted by saving a vote document
@@ -164,7 +166,7 @@ export default {
 
       } catch (error) {
         console.error("Error logging in with voucher:", error);
-        alert("An error occurred during login. Please try again.");
+        Swal.fire("An error occurred during login. Please try again.");
       } finally {
         this.isSubmitting = false;
       }
