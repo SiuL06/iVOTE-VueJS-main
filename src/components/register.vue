@@ -76,7 +76,7 @@ export default {
       try {
         const db = getFirestore();
 
-        // Query Firestore to find the user with the matching email and department
+
         const userQuery = query(
           collection(db, "users"),
           where("Email", "==", this.email),
@@ -84,7 +84,7 @@ export default {
         );
         const querySnapshot = await getDocs(userQuery);
 
-        // Check if the email and department combination exists
+        
         if (querySnapshot.empty) {
           alert("Email and Department combination not found in the system.");
           return;

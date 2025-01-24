@@ -93,22 +93,22 @@ export default {
 
         console.log("User Data Retrieved:", userData);
 
-        // Check voting time validity
+
         const currentTime = new Date();
 
         let validFrom, validTo;
 
         try {
-          // Parse `validFrom` and `validTo` fields with AM/PM handling
+
           validFrom = new Date(
             typeof userData.validFrom === "string"
-              ? userData.validFrom.replace(/AM|PM/, "") // Remove AM/PM for parsing
+              ? userData.validFrom.replace(/AM|PM/, "")
               : userData.validFrom.toDate()
           );
 
           validTo = new Date(
             typeof userData.validTo === "string"
-              ? userData.validTo.replace(/AM|PM/, "") // Remove AM/PM for parsing
+              ? userData.validTo.replace(/AM|PM/, "") 
               : userData.validTo.toDate()
           );
 
