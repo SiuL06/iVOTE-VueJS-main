@@ -56,7 +56,6 @@
 </template>
 
 <script>
-// Importing emailjs-com for email sending
 import emailjs from 'emailjs-com';
 import { getFirestore, collection, query, where, getDocs, setDoc } from "firebase/firestore";
 
@@ -68,7 +67,7 @@ export default {
       lastname: "",
       firstname: "",
       department: "",
-      voucherCode: "", // This will store the generated voucher code
+      voucherCode: "", 
     };
   },
   methods: {
@@ -94,35 +93,35 @@ export default {
         let retrievedFirstname;
         let existingVoucher;
 
-        // Retrieve document reference, firstname, and voucher
+        
         querySnapshot.forEach((document) => {
-          userDocRef = document.ref; // Document reference
-          retrievedFirstname = document.data().Firstname; // Fetch the existing Firstname
-          existingVoucher = document.data().Voucher; // Fetch the existing Voucher field
+          userDocRef = document.ref; 
+          retrievedFirstname = document.data().Firstname; 
+          existingVoucher = document.data().Voucher; 
         });
 
-        // Check if the user already has a voucher
+       
         if (existingVoucher) {
           alert("You have already registered and received a voucher.");
           return;
         }
 
-        // Generate a random voucher code
+       
         this.voucherCode = this.generateVoucherCode();
 
-        // Send the voucher email using EmailJS
+        
         this.sendVoucherEmail(this.email, retrievedFirstname, this.voucherCode);
 
-        // Save user details along with the voucher code to Firestore
+       
         await setDoc(
           userDocRef,
           {
             Lastname: this.lastname,
             Firstname: this.firstname,
             Department: this.department,
-            Voucher: this.voucherCode, // Save the voucher code
+            Voucher: this.voucherCode, 
           },
-          { merge: true } // Merge with existing fields
+          { merge: true } 
         );
 
         alert(`Registration successful! Your voucher code has been sent to ${this.email}`);
@@ -132,26 +131,26 @@ export default {
       }
     },
 
-    // Function to generate a random voucher code
+    
     generateVoucherCode() {
       return Math.random().toString(36).substring(2, 10).toUpperCase();
     },
 
-    // Function to send the voucher email using EmailJS
+    
     sendVoucherEmail(email, firstname, voucherCode) {
       const templateParams = {
-        to_email: email, // Dynamically pass the recipient's email
-        to_name: firstname, // Maps to {{to_name}} in the template
-        from_name: "System Admin", // Static name; Maps to {{from_name}}
-        message: `Your voucher code is: ${voucherCode}`, // Maps to {{message}} in the template
+        to_email: email, 
+        to_name: firstname, 
+        from_name: "System Admin", 
+        message: `Your voucher code is: ${voucherCode}`, 
       };
 
       emailjs
         .send(
-          'service_owytwze', // Replace with your EmailJS service ID
-          'template_ddqgd23', // Replace with your EmailJS template ID
+          'service_owytwze', 
+          'template_ddqgd23', 
           templateParams,
-          'ASoddsQfmCUWEnZsY' // Replace with your EmailJS public key
+          'ASoddsQfmCUWEnZsY' 
         )
         .then((response) => {
           console.log("Email sent successfully:", response);
